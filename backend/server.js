@@ -84,6 +84,11 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('clearBoard');
   });
 
+  socket.on('sendMessage', ({ roomId, message }) => {
+    // Broadcast the message to all users in the room
+    socket.to(roomId).emit('receiveMessage', { message, id: socket.id });
+  });
+
   socket.on('disconnect', () => {
     console.log('A user disconnected');
   });
