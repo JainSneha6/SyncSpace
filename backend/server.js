@@ -24,7 +24,6 @@ const io = new Server(server, {
 
 // In-memory storage for drawing data per room
 const roomDrawings = {};
-const roomBackgroundColors = {}; // Store background colors for each room
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
@@ -34,14 +33,29 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     console.log(`User ${socket.id} joined room: ${roomId}`);
 
-    // Send existing drawing data and background color to the new participant
+    // Send existing drawing data to the new participant
     if (roomDrawings[roomId]) {
       socket.emit('loadDrawing', roomDrawings[roomId]);
-      socket.emit('loadBackgroundColor', roomBackgroundColors[roomId] || '#FFFFFF'); // Send the background color
     } else {
       roomDrawings[roomId] = []; // Initialize room if not already existing
-      roomBackgroundColors[roomId] = '#FFFFFF'; // Set default background color
     }
+
+    // Notify others in the room about the new user (for WebRTC)
+    socket.to(roomId).emit('user-connected', socket.id);
+  });
+
+  // WebRTC signaling for peer-to-peer video connections
+  socket.on('signal', ({ roomId, signalData, to }) => {
+    socket.to(to).emit('signal', {
+      signalData,
+      from: socket.id,
+    });
+  });
+
+  // Handle when a user disconnects
+  socket.on('disconnect', () => {
+    console.log('A user disconnected:', socket.id);
+    io.emit('user-disconnected', socket.id);
   });
 
   // Handle drawing actions and save them to the room's data
@@ -55,27 +69,12 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('drawing', { offsetX, offsetY, prevX, prevY, color, brushWidth });
   });
 
-  // Clear board event
+  // Handle clear board event
   socket.on('clearBoard', (roomId) => {
     // Clear the room drawings in memory
     roomDrawings[roomId] = [];
     // Broadcast clear board event to all users in the room
     socket.to(roomId).emit('clearBoard');
-  });
-
-  // Change brush width
-  socket.on('changeBrushWidth', ({ roomId, brushWidth }) => {
-    socket.to(roomId).emit('changeBrushWidth', brushWidth);
-  });
-
-  // Change background color
-  socket.on('changeBackgroundColor', ({ roomId, backgroundColor }) => {
-    roomBackgroundColors[roomId] = backgroundColor; // Update the background color in memory
-    socket.to(roomId).emit('changeBackgroundColor', backgroundColor); // Broadcast new background color
-  });
-
-  socket.on('disconnect', () => {
-    console.log('A user disconnected:', socket.id);
   });
 });
 

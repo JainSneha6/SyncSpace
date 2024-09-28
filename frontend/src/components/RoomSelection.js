@@ -7,14 +7,15 @@ const RoomSelection = () => {
 
   const handleCreateRoom = () => {
     const newRoomId = `room-${Math.random().toString(36).substr(2, 9)}`;
-    navigate(`/room/${newRoomId}`);
+    navigate(`/video/${newRoomId}`);
   };
 
   const handleJoinRoom = () => {
     if (roomId) {
-      navigate(`/room/${roomId}`);
+      navigate(`/video/${roomId}`);
     }
   };
+
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">
