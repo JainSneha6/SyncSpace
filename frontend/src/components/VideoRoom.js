@@ -106,11 +106,11 @@ const VideoRoom = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-gray-200 to-gray-300">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-gray-200 to-gray-300 p-4">
             <h1 className="text-5xl font-bold mb-8 text-pink-600 drop-shadow-lg">PaletteConnect</h1>
             {!roomId ? (
                 <motion.div 
-                    className="bg-white p-8 rounded-lg shadow-lg transform transition-transform duration-300 hover:scale-105"
+                    className="bg-white p-8 rounded-lg shadow-lg transform transition-transform duration-300 hover:scale-105 w-full max-w-md"
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
                 >
@@ -138,13 +138,16 @@ const VideoRoom = () => {
                 </motion.div>
             ) : (
                 <motion.div 
-                    className="bg-white p-8 rounded-lg shadow-lg transform transition-transform duration-300"
+                    className="bg-white p-4 rounded-lg shadow-lg transform transition-transform duration-300 w-full"
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
                 >
-                    <h2 className="text-2xl mb-4 text-gray-700">Room ID: {roomId}</h2>
+                    <h2 className="text-2xl mb-4 text-gray-700 text-center">Room ID: {roomId}</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <video playsInline muted ref={userVideoRef} autoPlay className="rounded-lg shadow-md" />
+                        <div className="relative">
+                            <video playsInline muted ref={userVideoRef} autoPlay className="rounded-lg shadow-md w-full" />
+                            <div className="absolute top-0 left-0 bg-pink-500 text-white text-sm font-semibold p-1 rounded-bl-lg">You</div>
+                        </div>
                         {peers.map((peer, index) => (
                             <Video key={index} peer={peer} />
                         ))}
@@ -167,12 +170,15 @@ const Video = ({ peer }) => {
     }, [peer]);
 
     return (
-        <video 
-            playsInline 
-            autoPlay 
-            ref={ref} 
-            className="rounded-lg shadow-md transition-transform duration-500 hover:scale-105" 
-        />
+        <div className="relative">
+            <video 
+                playsInline 
+                autoPlay 
+                ref={ref} 
+                className="rounded-lg shadow-md w-full" 
+            />
+            <div className="absolute top-0 left-0 bg-gray-700 text-white text-sm font-semibold p-1 rounded-bl-lg">Participant</div>
+        </div>
     );
 };
 
