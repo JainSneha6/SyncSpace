@@ -6,8 +6,12 @@ import { motion } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom'; // Import useNavigate
 
 const VideoRoom = () => {
+<<<<<<< HEAD
     const { room } = useParams();
     const [roomId, setRoomId] = useState(room ? room : '');
+=======
+    const [roomId, setRoomId] = useState('');
+>>>>>>> a72c70344a09893ec2b414d8f2b6a1d63258356f
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
     const [isCameraOn, setIsCameraOn] = useState(true);
@@ -116,8 +120,23 @@ const VideoRoom = () => {
         return peer;
     };
 
+    const funkyWords = [
+        'Funky', 'Groovy', 'Chill', 'Wacky', 'Zesty',
+        'Bubbly', 'Quirky', 'Jazzy', 'Rad', 'Swanky',
+        'Silly', 'Whimsical', 'Dizzy', 'Spunky', 'Bouncy',
+        'Cheery', 'Sassy', 'Spicy', 'Fizzy', 'Nifty',
+        'Snazzy', 'Twisty', 'Peppy', 'Giddy', 'Hoppy',
+        'Dandy', 'Zippy', 'Froggy', 'Funkyfresh', 'Wiggle',
+        'Jolly', 'Breezy', 'Chipper', 'Sunny', 'Kooky'
+    ];
+
+    const getRandomNumber = () => Math.floor(Math.random() * 100); // Generates a random number between 0 and 99
+
     const handleRoomCreate = () => {
-        const newRoomId = Math.random().toString(36).substring(7);
+        const randomWord1 = funkyWords[Math.floor(Math.random() * funkyWords.length)];
+        const randomWord2 = funkyWords[Math.floor(Math.random() * funkyWords.length)];
+        const randomNumber = getRandomNumber();
+        const newRoomId = `${randomWord1}-${randomWord2}-${randomNumber}`;
         setRoomId(newRoomId);
     };
 
