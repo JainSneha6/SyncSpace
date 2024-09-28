@@ -85,8 +85,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('sendMessage', ({ roomId, message }) => {
-    // Broadcast the message to all users in the room
-    socket.to(roomId).emit('receiveMessage', { message, id: socket.id });
+    io.in(roomId).emit('receiveMessage', { message, id: socket.id });  // Emit to everyone in the room
   });
 
   socket.on('disconnect', () => {
