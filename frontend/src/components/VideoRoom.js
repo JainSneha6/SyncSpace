@@ -143,14 +143,20 @@ const VideoRoom = () => {
                     animate={{ scale: 1 }}
                 >
                     <h2 className="text-2xl mb-4 text-gray-700 text-center">Room ID: {roomId}</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="relative">
                             <video playsInline muted ref={userVideoRef} autoPlay className="rounded-lg shadow-md w-full" />
                             <div className="absolute top-0 left-0 bg-pink-500 text-white text-sm font-semibold p-1 rounded-bl-lg">You</div>
                         </div>
-                        {peers.map((peer, index) => (
-                            <Video key={index} peer={peer} />
-                        ))}
+                        {peers.length > 0 ? (
+                            peers.map((peer, index) => (
+                                <Video key={index} peer={peer} />
+                            ))
+                        ) : (
+                            <div className="flex items-center justify-center h-48 bg-gray-200 rounded-lg">
+                                <p className="text-gray-600">Waiting for a participant...</p>
+                            </div>
+                        )}
                     </div>
                 </motion.div>
             )}
