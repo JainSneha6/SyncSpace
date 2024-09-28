@@ -14,7 +14,7 @@ const Chat = ({ socketRef, roomId }) => {
   const [gifs, setGifs] = useState([]); // Store fetched GIFs
   const [searchQuery, setSearchQuery] = useState(''); // Search query for Giphy
   const [isSharing, setIsSharing] = useState(false); // State for screen sharing
-  const [peer, setPeer] = useState(null); // Peer connection
+  const [peers, setPeers] = useState({}); // Store peer connections
   const videoRef = useRef(); // Reference to video element
 
   useEffect(() => {
@@ -26,23 +26,25 @@ const Chat = ({ socketRef, roomId }) => {
       });
 
       socketRef.current.on('receiveMessage', ({ message, id }) => {
-        setMessages(prevMessages => [...prevMessages, { message, id }]);
+        setMessages((prevMessages) => [...prevMessages, { message, id }]);
       });
 
       // Listen for screen sharing signals from other users
-      socketRef.current.on('screenSignal', (signal) => {
-        if (peer) {
-          peer.signal(signal); // Signal the incoming stream
+      socketRef.current.on('screenSignal', ({ signal, senderId }) => {
+        if (peers[senderId]) {
+          peers[senderId].signal(signal); // Signal the incoming stream
         }
       });
 
       return () => {
+        Object.values(peers).forEach((peer) => peer.destroy()); // Clean up all peers
+        setPeers({});
         socketRef.current.off('chatHistory');
         socketRef.current.off('receiveMessage');
         socketRef.current.off('screenSignal');
       };
     }
-  }, [socketRef, roomId, peer]);
+  }, [socketRef, roomId, peers]);
 
   const handleSendMessage = (message) => {
     if (message.trim() !== '') {
@@ -61,8 +63,8 @@ const Chat = ({ socketRef, roomId }) => {
       params: {
         api_key: GIPHY_API_KEY,
         q: query,
-        limit: 10
-      }
+        limit: 10,
+      },
     });
     setGifs(res.data.data); // Giphy API response contains the GIFs in `data.data`
   };
@@ -73,36 +75,44 @@ const Chat = ({ socketRef, roomId }) => {
   };
 
   const handleEmojiClick = (emojiObject) => {
-    setNewMessage(prevMessage => prevMessage + emojiObject.emoji); // Append emoji to the message
+    setNewMessage((prevMessage) => prevMessage + emojiObject.emoji); // Append emoji to the message
   };
 
   const startScreenSharing = async () => {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true }); // Get screen stream
-      const peerConnection = new Peer({ initiator: true, trickle: false, stream }); // Create peer connection
+
+      const localVideo = document.createElement('video');
+      localVideo.srcObject = stream;
+      localVideo.autoplay = true;
+      localVideo.classList.add('w-full', 'h-64', 'border', 'rounded-lg', 'mt-2');
+      document.getElementById('localScreenFeed').appendChild(localVideo); // Append to a local video container
+
+      const peerConnection = new Peer({ initiator: true, trickle: false, stream });
 
       peerConnection.on('signal', (signal) => {
-        socketRef.current.emit('screenSignal', { roomId, signal }); // Send signal to server
+        socketRef.current.emit('screenSignal', { roomId, signal, senderId: socketRef.current.id }); // Send signal to server
       });
 
       peerConnection.on('stream', (remoteStream) => {
-        videoRef.current.srcObject = remoteStream; // Set received stream to the video element
+        videoRef.current.srcObject = remoteStream; // Set received stream to the video element for others
       });
 
-      setPeer(peerConnection); // Store the peer connection
-      setIsSharing(true); // Update sharing state
+      setPeers((prevPeers) => ({ ...prevPeers, [socketRef.current.id]: peerConnection })); // Store the peer connection
+      setIsSharing(true);
     } catch (error) {
       console.error('Error sharing screen:', error);
     }
   };
 
   const stopScreenSharing = () => {
-    if (peer) {
-      peer.destroy(); // Destroy the peer connection
-      setPeer(null); // Reset peer connection
-    }
+    Object.values(peers).forEach((peer) => peer.destroy()); // Destroy all peer connections
+    setPeers({}); // Reset peer connections
     setIsSharing(false); // Update sharing state
-    videoRef.current.srcObject = null; // Clear video element
+    const localScreenFeed = document.getElementById('localScreenFeed');
+    while (localScreenFeed.firstChild) {
+      localScreenFeed.removeChild(localScreenFeed.firstChild); // Clear local screen feed
+    }
   };
 
   const renderMessages = () => {
@@ -111,7 +121,10 @@ const Chat = ({ socketRef, roomId }) => {
         {msg.message.includes('giphy.com') ? (
           <img src={msg.message} alt="GIF" className="inline-block w-24 h-24" />
         ) : (
-          <span className={`inline-block px-2 py-1 rounded-lg ${msg.id === socketRef.current.id ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-700'}`}>
+          <span
+            className={`inline-block px-2 py-1 rounded-lg ${msg.id === socketRef.current.id ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-700'
+              }`}
+          >
             {msg.message}
           </span>
         )}
@@ -122,8 +135,16 @@ const Chat = ({ socketRef, roomId }) => {
   return (
     <div className="mt-4 relative">
       <h3 className="text-lg font-semibold mb-2">Chat</h3>
-      <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">
-        {renderMessages()}
+      <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">{renderMessages()}</div>
+
+      {/* Local Screen Feed */}
+      <div id="localScreenFeed" className="flex flex-col items-center mb-2">
+        <h4 className="text-lg font-semibold">Your Screen</h4>
+      </div>
+
+      {/* Video element for remote streams */}
+      <div id="remoteVideos" className="flex flex-col items-center">
+        <video ref={videoRef} autoPlay muted className="w-full h-64 border rounded-lg mt-2" />
       </div>
 
       {/* Giphy Search and Results */}
@@ -137,7 +158,10 @@ const Chat = ({ socketRef, roomId }) => {
               placeholder="Search GIFs..."
               className="border border-gray-300 p-2 rounded-lg flex-grow"
             />
-            <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-blue-600 flex items-center">
+            <button
+              type="submit"
+              className="bg-blue-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-blue-600 flex items-center"
+            >
               <FaSearch />
             </button>
           </form>
@@ -163,14 +187,21 @@ const Chat = ({ socketRef, roomId }) => {
       )}
 
       {/* Screen Sharing */}
-      <button onClick={isSharing ? stopScreenSharing : startScreenSharing} className="bg-green-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-green-600 flex items-center">
+      <button
+        onClick={isSharing ? stopScreenSharing : startScreenSharing}
+        className="bg-green-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-green-600 flex items-center"
+      >
         <FaDesktop /> {/* Screen sharing icon */}
         {isSharing ? ' Stop Sharing' : ' Share Screen'}
       </button>
 
-      <video ref={videoRef} autoPlay muted className="w-full h-64 border rounded-lg mt-2" /> {/* Video element to display shared screen */}
-
-      <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(newMessage); }} className="flex">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSendMessage(newMessage);
+        }}
+        className="flex"
+      >
         <input
           type="text"
           value={newMessage}
@@ -180,17 +211,27 @@ const Chat = ({ socketRef, roomId }) => {
         />
 
         {/* GIF Button with new icon */}
-        <button type="button" className="bg-yellow-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-yellow-600 flex items-center" onClick={() => setShowGifPicker(!showGifPicker)}>
+        <button
+          type="button"
+          className="bg-yellow-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-yellow-600 flex items-center"
+          onClick={() => setShowGifPicker(!showGifPicker)}
+        >
           <FaImage /> {/* Changed icon to FaImage */}
         </button>
 
         {/* Emoji Button */}
-        <button type="button" className="text-gray-500 p-2 ml-2 hover:text-pink-500 transition duration-300" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
-          <FaSmile size={24} />
+        <button
+          type="button"
+          className="bg-blue-300 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-blue-400 flex items-center"
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+        >
+          <FaSmile />
         </button>
 
-        {/* Send Button */}
-        <button type="submit" className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center">
+        <button
+          type="submit"
+          className="bg-blue-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-blue-600 flex items-center"
+        >
           <FaPaperPlane />
         </button>
       </form>
