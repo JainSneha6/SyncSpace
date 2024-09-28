@@ -10,7 +10,7 @@ const io = socket(server, {
   }
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = 5000;
 
 const rooms = new Map();
 
