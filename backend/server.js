@@ -22,9 +22,6 @@ const rooms = new Map();
 // For whiteboard
 const roomDrawings = {}; // Store drawings for each room
 
-// For chat
-const roomMessages = {}; // Store chat messages for each room
-
 // Video call socket events
 io.on('connection', (socket) => {
   console.log('A user connected');
@@ -68,11 +65,6 @@ io.on('connection', (socket) => {
     if (roomDrawings[roomId]) {
       socket.emit('loadDrawing', roomDrawings[roomId]);
     }
-
-    // Load existing chat messages for the room
-    if (roomMessages[roomId]) {
-      socket.emit('loadMessages', roomMessages[roomId]);
-    }
   });
 
   socket.on('drawing', ({ roomId, offsetX, offsetY, prevX, prevY, color, brushWidth }) => {
@@ -92,33 +84,11 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('clearBoard');
   });
 
-  // Chat socket events
-  socket.on('send message', ({ roomId, message, sender }) => {
-    if (!roomMessages[roomId]) {
-      roomMessages[roomId] = [];
-    }
-
-    // Store the chat message
-    const chatMessage = { sender, text: message, time: new Date().toISOString() };
-    roomMessages[roomId].push(chatMessage);
-
-    // Broadcast the chat message to others in the room
-    io.to(roomId).emit('receive message', chatMessage);
-  });
-
-  // Load existing chat messages for the room when a user joins
-  socket.on('requestMessages', (roomId) => {
-    if (roomMessages[roomId]) {
-      socket.emit('loadMessages', roomMessages[roomId]);
-    }
-  });
-
   socket.on('disconnect', () => {
     console.log('A user disconnected');
   });
 });
 
-// Start the server
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
