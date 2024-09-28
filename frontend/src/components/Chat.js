@@ -1,23 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { FaPaperPlane, FaSmile } from 'react-icons/fa';
-import EmojiPicker from 'emoji-picker-react';
+import { FaPaperPlane, FaSmile, FaSearch } from 'react-icons/fa';
+import axios from 'axios';  // For API calls
+
+const GIPHY_API_KEY = 'N8zxen9SSipE8ZLfgl8SZX3t8yzlZXSS';  // Replace with your actual Giphy API Key
 
 const Chat = ({ socketRef, roomId }) => {
-  const [messages, setMessages] = useState([]); // State for chat messages
-  const [newMessage, setNewMessage] = useState(''); // State for new message input
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // State to toggle emoji picker visibility
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [gifs, setGifs] = useState([]); // Store fetched GIFs
+  const [searchQuery, setSearchQuery] = useState('');  // Search query for Giphy
 
   useEffect(() => {
     if (socketRef.current) {
-      // Emit event to join the room
       socketRef.current.emit('joinRoom', roomId);
 
-      // Listen for chat history when joining
       socketRef.current.on('chatHistory', (history) => {
-        setMessages(history); // Load chat history
+        setMessages(history);
       });
 
-      // Listen for new incoming messages
       socketRef.current.on('receiveMessage', ({ message, id }) => {
         setMessages(prevMessages => [...prevMessages, { message, id }]);
       });
@@ -29,28 +30,45 @@ const Chat = ({ socketRef, roomId }) => {
     }
   }, [socketRef, roomId]);
 
-  // Function to handle sending a message
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (newMessage.trim() !== '') {
-      // Emit the message to the server
-      socketRef.current.emit('sendMessage', { roomId, message: newMessage });
-      setNewMessage(''); // Clear message input after sending
+  const handleSendMessage = (message) => {
+    if (message.trim() !== '') {
+      socketRef.current.emit('sendMessage', { roomId, message });
+      setNewMessage('');
     }
   };
 
-  // Function to handle emoji selection
-  const handleEmojiClick = (emojiObject) => {
-    setNewMessage(prevMessage => prevMessage + emojiObject.emoji); // Append emoji to the message
+  const handleSendGif = (gifUrl) => {
+    // Sending GIF URL as a message
+    handleSendMessage(gifUrl);
+    setShowGifPicker(false);  // Close the GIF picker after sending
   };
 
-  // Render the list of chat messages
+  const fetchGifs = async (query) => {
+    const res = await axios.get(`https://api.giphy.com/v1/gifs/search`, {
+      params: {
+        api_key: GIPHY_API_KEY,
+        q: query,
+        limit: 10
+      }
+    });
+    setGifs(res.data.data);  // Giphy API response contains the GIFs in `data.data`
+  };
+
+  const handleSearchGiphy = (e) => {
+    e.preventDefault();
+    fetchGifs(searchQuery);
+  };
+
   const renderMessages = () => {
     return messages.map((msg, index) => (
       <div key={index} className={`mb-2 ${msg.id === socketRef.current.id ? 'text-right' : ''}`}>
-        <span className={`inline-block px-2 py-1 rounded-lg ${msg.id === socketRef.current.id ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-700'}`}>
-          {msg.message}
-        </span>
+        {msg.message.includes('giphy.com') ? (
+          <img src={msg.message} alt="GIF" className="inline-block w-24 h-24" />
+        ) : (
+          <span className={`inline-block px-2 py-1 rounded-lg ${msg.id === socketRef.current.id ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-700'}`}>
+            {msg.message}
+          </span>
+        )}
       </div>
     ));
   };
@@ -62,15 +80,36 @@ const Chat = ({ socketRef, roomId }) => {
         {renderMessages()}
       </div>
 
-      {/* Emoji Picker Toggle */}
-      {showEmojiPicker && (
-        <div className="absolute bottom-20 right-10">
-          <EmojiPicker onEmojiClick={handleEmojiClick} />
+      {/* Giphy Search and Results */}
+      {showGifPicker && (
+        <div className="mb-2">
+          <form onSubmit={handleSearchGiphy} className="flex mb-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search GIFs..."
+              className="border border-gray-300 p-2 rounded-lg flex-grow"
+            />
+            <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-blue-600 flex items-center">
+              <FaSearch />
+            </button>
+          </form>
+          <div className="grid grid-cols-3 gap-2">
+            {gifs.map((gif) => (
+              <img
+                key={gif.id}
+                src={gif.images.fixed_height.url}
+                alt={gif.title}
+                className="cursor-pointer w-24 h-24"
+                onClick={() => handleSendGif(gif.images.fixed_height.url)}
+              />
+            ))}
+          </div>
         </div>
       )}
 
-      <form onSubmit={handleSendMessage} className="flex items-center relative">
-        {/* Message Input */}
+      <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(newMessage); }} className="flex">
         <input
           type="text"
           value={newMessage}
@@ -78,22 +117,11 @@ const Chat = ({ socketRef, roomId }) => {
           placeholder="Type a message..."
           className="border border-gray-300 p-2 rounded-lg flex-grow"
         />
-
-        {/* Emoji Button */}
-        <button
-          type="button"
-          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className="text-gray-500 p-2 ml-2 hover:text-pink-500 transition duration-300"
-        >
-          <FaSmile size={24} />
-        </button>
-
-        {/* Send Button */}
-        <button
-          type="submit"
-          className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center"
-        >
+        <button type="submit" className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center">
           <FaPaperPlane />
+        </button>
+        <button type="button" className="bg-yellow-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-yellow-600 flex items-center" onClick={() => setShowGifPicker(!showGifPicker)}>
+          <FaSmile />
         </button>
       </form>
     </div>
