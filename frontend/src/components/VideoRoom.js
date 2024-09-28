@@ -4,8 +4,7 @@ import Peer from 'simple-peer';
 import { useParams } from 'react-router-dom';
 
 const VideoRoom = () => {
-    const { roomId } = useParams()
-    // const [roomId, setRoomId] = useState('');
+    const { roomId } = useParams();
     const [peers, setPeers] = useState([]);
     const socketRef = useRef();
     const userVideoRef = useRef();
@@ -28,10 +27,7 @@ const VideoRoom = () => {
                     const peers = [];
                     users.forEach(userId => {
                         const peer = createPeer(userId, socketRef.current.id, stream);
-                        peersRef.current.push({
-                            peerID: userId,
-                            peer,
-                        });
+                        peersRef.current.push({ peerID: userId, peer });
                         peers.push(peer);
                     });
                     setPeers(peers);
@@ -39,10 +35,7 @@ const VideoRoom = () => {
 
                 socketRef.current.on('user joined', payload => {
                     const peer = addPeer(payload.signal, payload.callerID, stream);
-                    peersRef.current.push({
-                        peerID: payload.callerID,
-                        peer,
-                    });
+                    peersRef.current.push({ peerID: payload.callerID, peer });
                     setPeers(users => [...users, peer]);
                 });
 
@@ -50,6 +43,16 @@ const VideoRoom = () => {
                     const item = peersRef.current.find(p => p.peerID === payload.id);
                     item.peer.signal(payload.signal);
                 });
+
+                // Emit existing streams for new users
+                socketRef.current.on('existing users', (streams) => {
+                    streams.forEach((streamData) => {
+                        const peer = addPeer(streamData.signal, streamData.callerID, stream);
+                        peersRef.current.push({ peerID: streamData.callerID, peer });
+                        setPeers(users => [...users, peer]);
+                    });
+                });
+
             })
             .catch(err => {
                 console.error("Error accessing media devices:", err);
@@ -95,27 +98,13 @@ const VideoRoom = () => {
         return peer;
     }
 
-    // const handleRoomCreate = () => {
-    //     const newRoomId = Math.random().toString(36).substring(7);
-    //     setRoomId(newRoomId);
-    // };
-
-    // const handleRoomJoin = (e) => {
-    //     e.preventDefault();
-    //     // Room ID is already set in state
-    // };
-
     return (
         <div>
-            {(
-                <div>
-                    <h2>Room ID: {roomId}</h2>
-                    <video playsInline muted ref={userVideoRef} autoPlay />
-                    {peers.map((peer, index) => (
-                        <Video key={index} peer={peer} />
-                    ))}
-                </div>
-            )}
+            <h2>Room ID: {roomId}</h2>
+            <video playsInline muted ref={userVideoRef} autoPlay />
+            {peers.map((peer, index) => (
+                <Video key={index} peer={peer} />
+            ))}
         </div>
     );
 };
