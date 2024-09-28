@@ -6,8 +6,7 @@ import Peer from 'simple-peer';
 import { useParams } from 'react-router-dom';
 
 const VideoRoom = () => {
-    const { room } = useParams();
-    const [roomId, setRoomId] = useState(room?room:'')
+    const { roomId } = useParams();
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
     const [isCameraOn, setIsCameraOn] = useState(true);
@@ -53,6 +52,15 @@ const VideoRoom = () => {
                 socketRef.current.on('receiving returned signal', payload => {
                     const item = peersRef.current.find(p => p.peerID === payload.id);
                     item.peer.signal(payload.signal);
+                });
+
+                socketRef.current.on('user left', id => {
+                    const peerObj = peersRef.current.find(p => p.peerID === id);
+                    if (peerObj) {
+                        peerObj.peer.destroy();
+                    }
+                    peersRef.current = peersRef.current.filter(p => p.peerID !== id);
+                    setPeers(peersRef.current.map(p => p.peer));
                 });
             })
             .catch(err => {
