@@ -14,6 +14,7 @@ const io = new Server(server, {
   },
 });
 
+const rooms = {};
 const roomDrawings = {}; // Store drawings for each room
 
 io.on('connection', (socket) => {
@@ -22,6 +23,18 @@ io.on('connection', (socket) => {
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
     console.log(`User joined room: ${roomId}`);
+
+    // Notify existing users in the room
+    socket.to(roomId).emit('user-connected', socket.id);
+
+    // Send existing peers' signals to the newly joined user
+    const existingUsers = [...io.sockets.adapter.rooms.get(roomId)];
+    existingUsers.forEach((userId) => {
+      if (userId !== socket.id) {
+        // Inform the new user of existing peers
+        socket.emit('user-connected', userId);
+      }
+    });
 
     // Load existing drawings for the room
     if (roomDrawings[roomId]) {
