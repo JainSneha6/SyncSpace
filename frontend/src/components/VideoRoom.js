@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import SimplePeer from 'simple-peer'; // Correctly import SimplePeer
+import SimplePeer from 'simple-peer'; // Make sure to import SimplePeer
 import { FaChalkboardTeacher } from 'react-icons/fa';
 
-const socket = io('https://paletteconnect.onrender.com');
+const socket = io('https://paletteconnect.onrender.com'); // Update to your server URL
 
 const VideoRoom = () => {
     const { roomId } = useParams();
@@ -17,7 +17,6 @@ const VideoRoom = () => {
     useEffect(() => {
         navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
             userVideo.current.srcObject = stream;
-
             socket.emit('joinRoom', roomId);
 
             socket.on('user-connected', (userId) => {
@@ -31,7 +30,9 @@ const VideoRoom = () => {
 
             socket.on('signal', ({ signalData, from }) => {
                 const peerObj = peersRef.current.find((p) => p.peerID === from);
-                peerObj?.peer.signal(signalData);
+                if (peerObj) {
+                    peerObj.peer.signal(signalData);
+                }
             });
 
             socket.on('user-disconnected', (userId) => {
