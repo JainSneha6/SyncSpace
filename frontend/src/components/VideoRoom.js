@@ -11,7 +11,7 @@ const VideoRoom = () => {
     const streamRef = useRef();
 
     useEffect(() => {
-        socketRef.current = io.connect('http://localhost:5000');
+        socketRef.current = io.connect('https://paletteconnect.onrender.com');
 
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {
