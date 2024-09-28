@@ -1,20 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaCamera, FaUserPlus, FaMicrophone, FaMicrophoneSlash, FaPalette } from 'react-icons/fa';
+import { FaCamera, FaUserPlus, FaMicrophone, FaMicrophoneSlash, FaPalette, FaPaperPlane } from 'react-icons/fa';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 
 const VideoRoom = () => {
     const [roomId, setRoomId] = useState('');
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
     const [isCameraOn, setIsCameraOn] = useState(true);
+    const [messages, setMessages] = useState([]); // State for chat messages
+    const [newMessage, setNewMessage] = useState(''); // State for new message input
     const socketRef = useRef();
     const userVideoRef = useRef();
     const peersRef = useRef([]);
     const streamRef = useRef();
-    const navigate = useNavigate(); // Initialize useNavigate
+    const navigate = useNavigate();
 
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
@@ -54,6 +56,11 @@ const VideoRoom = () => {
                     const item = peersRef.current.find(p => p.peerID === payload.id);
                     item.peer.signal(payload.signal);
                 });
+
+                // Chat functionality
+                socketRef.current.on('receiveMessage', ({ message, id }) => {
+                    setMessages(prevMessages => [...prevMessages, { message, id }]);
+                });
             })
             .catch(err => {
                 console.error("Error accessing media devices:", err);
@@ -69,65 +76,24 @@ const VideoRoom = () => {
         };
     }, [roomId]);
 
-    const toggleMic = () => {
-        const audioTracks = streamRef.current.getAudioTracks();
-        audioTracks.forEach(track => {
-            track.enabled = !track.enabled;
-        });
-        setIsMicOn(prev => !prev);
-    };
-
-    const toggleCamera = () => {
-        const videoTracks = streamRef.current.getVideoTracks();
-        videoTracks.forEach(track => {
-            track.enabled = !track.enabled;
-        });
-        setIsCameraOn(prev => !prev);
-    };
-
-    const createPeer = (userToSignal, callerID, stream) => {
-        const peer = new Peer({
-            initiator: true,
-            trickle: false,
-            stream,
-        });
-
-        peer.on('signal', signal => {
-            socketRef.current.emit('sending signal', { userToSignal, callerID, signal });
-        });
-
-        return peer;
-    };
-
-    const addPeer = (incomingSignal, callerID, stream) => {
-        const peer = new Peer({
-            initiator: false,
-            trickle: false,
-            stream,
-        });
-
-        peer.on('signal', signal => {
-            socketRef.current.emit('returning signal', { signal, callerID });
-        });
-
-        peer.signal(incomingSignal);
-
-        return peer;
-    };
-
-    const handleRoomCreate = () => {
-        const newRoomId = Math.random().toString(36).substring(7);
-        setRoomId(newRoomId);
-    };
-
-    const handleRoomJoin = (e) => {
+    // Function to handle sending messages
+    const handleSendMessage = (e) => {
         e.preventDefault();
-        // Room ID is already set in state
+        if (newMessage.trim() !== '') {
+            socketRef.current.emit('sendMessage', { roomId, message: newMessage });
+            setNewMessage(''); // Clear the input field
+        }
     };
 
-    // Button to navigate to whiteboard
-    const goToWhiteboard = () => {
-        navigate(`/whiteboard/${roomId}`); // Navigate to the whiteboard with the room ID
+    // Add a function to render chat messages
+    const renderMessages = () => {
+        return messages.map((msg, index) => (
+            <div key={index} className={`mb-2 ${msg.id === socketRef.current.id ? 'text-right' : ''}`}>
+                <span className={`inline-block px-2 py-1 rounded-lg ${msg.id === socketRef.current.id ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-700'}`}>
+                    {msg.message}
+                </span>
+            </div>
+        ));
     };
 
     return (
@@ -197,6 +163,26 @@ const VideoRoom = () => {
                         <FaPalette className="mr-2" />
                         Go to Whiteboard
                     </button>
+
+                    {/* Chat Section */}
+                    <div className="mt-4">
+                        <h3 className="text-lg font-semibold mb-2">Chat</h3>
+                        <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">
+                            {renderMessages()}
+                        </div>
+                        <form onSubmit={handleSendMessage} className="flex">
+                            <input
+                                type="text"
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                placeholder="Type a message..."
+                                className="border border-gray-300 p-2 rounded-lg flex-grow"
+                            />
+                            <button type="submit" className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center">
+                                <FaPaperPlane />
+                            </button>
+                        </form>
+                    </div>
                 </motion.div>
             )}
         </div>
