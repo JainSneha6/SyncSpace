@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import SimplePeer from 'simple-peer';
 import { FaChalkboardTeacher } from 'react-icons/fa';
 
-const socket = io('http://localhost:5000'); // Adjust to your server URL
+const socket = io('https://paletteconnect.onrender.com'); // Adjust to your server URL
 
 const VideoRoom = () => {
     const { roomId } = useParams();
