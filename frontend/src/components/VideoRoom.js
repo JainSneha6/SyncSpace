@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import SimplePeer from 'simple-peer'; // Correctly import SimplePeer
 import { FaChalkboardTeacher } from 'react-icons/fa';
 
 const socket = io('https://paletteconnect.onrender.com');
@@ -50,7 +51,7 @@ const VideoRoom = () => {
     }, [roomId]);
 
     const createPeer = (userToSignal, callerID, stream) => {
-        const peer = new window.SimplePeer({
+        const peer = new SimplePeer({
             initiator: true,
             trickle: false,
             stream,
