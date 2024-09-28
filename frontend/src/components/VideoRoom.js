@@ -6,12 +6,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom'; // Import useNavigate
 
 const VideoRoom = () => {
-<<<<<<< HEAD
-    const { room } = useParams();
-    const [roomId, setRoomId] = useState(room ? room : '');
-=======
     const [roomId, setRoomId] = useState('');
->>>>>>> a72c70344a09893ec2b414d8f2b6a1d63258356f
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
     const [isCameraOn, setIsCameraOn] = useState(true);
