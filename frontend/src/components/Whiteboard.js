@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FaPalette, FaTrash, FaPaintBrush, FaBrush, FaEraser, FaArrowLeft } from 'react-icons/fa';
+import { useParams } from 'react-router-dom';
+import { FaPalette, FaTrash, FaPaintBrush, FaBrush, FaEraser } from 'react-icons/fa';
 import { ChromePicker } from 'react-color';
 
 const socket = io('https://paletteconnect.onrender.com'); // Connect to the backend
@@ -18,7 +18,6 @@ const Whiteboard = () => {
   const [showBrushOptions, setShowBrushOptions] = useState(false);
   const [isErasing, setIsErasing] = useState(false); // State to toggle eraser
   const { roomId } = useParams();
-  const navigate = useNavigate(); // Hook for navigation
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -83,7 +82,7 @@ const Whiteboard = () => {
         prevX: prevPos.offsetX,
         prevY: prevPos.offsetY,
         color: colorToUse,
-        brushWidth: width
+        brushWidth: width,
       });
     }
   };
@@ -112,21 +111,9 @@ const Whiteboard = () => {
     setIsErasing(!isErasing);
   };
 
-  // Function to navigate back to the video meeting
-  const handleBackToMeeting = () => {
-    navigate(`/video-room/${roomId}`); // Adjust the route to your video room path
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4 relative">
       <h3 className="text-xl font-semibold text-gray-700 mb-4">Room: {roomId}</h3>
-      {/* Back to Meeting button */}
-      <button
-        onClick={handleBackToMeeting}
-        className="absolute top-4 left-4 p-2 bg-purple-500 text-white rounded-full hover:bg-purple-600"
-      >
-        <FaArrowLeft className="text-2xl" />
-      </button>
       {/* Color picker */}
       <div className="absolute left-4 top-4">
         <FaPalette
@@ -178,7 +165,10 @@ const Whiteboard = () => {
         className="absolute right-16 top-12 w-32"
         style={{ display: isErasing ? 'block' : 'none' }} // Show only when eraser is active
       />
-      <span className="text-gray-700 absolute right-8 top-12" style={{ display: isErasing ? 'block' : 'none' }}>
+      <span
+        className="text-gray-700 absolute right-8 top-12"
+        style={{ display: isErasing ? 'block' : 'none' }}
+      >
         {eraserWidth}
       </span>
       {/* Clear board button */}
