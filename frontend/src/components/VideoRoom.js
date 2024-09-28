@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
-import { useParams } from 'react-router-dom';
 
-const VideoRoom = () => {
-    const { roomId } = useParams(); // Get roomId from the URL parameters
+const VideoCall = () => {
+    const [roomId, setRoomId] = useState('');
     const [peers, setPeers] = useState([]);
     const socketRef = useRef();
     const userVideo = useRef();
@@ -12,12 +11,10 @@ const VideoRoom = () => {
 
     useEffect(() => {
         socketRef.current = io.connect('http://localhost:5000');
-
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {
                 userVideo.current.srcObject = stream;
                 socketRef.current.emit('join room', roomId);
-
                 socketRef.current.on('all users', users => {
                     const peers = [];
                     users.forEach(userId => {
@@ -45,10 +42,6 @@ const VideoRoom = () => {
                     item.peer.signal(payload.signal);
                 });
             });
-
-        return () => {
-            socketRef.current.disconnect();
-        };
     }, [roomId]);
 
     function createPeer(userToSignal, callerID, stream) {
@@ -81,13 +74,40 @@ const VideoRoom = () => {
         return peer;
     }
 
+    const handleRoomCreate = () => {
+        const newRoomId = Math.random().toString(36).substring(7);
+        setRoomId(newRoomId);
+    };
+
+    const handleRoomJoin = (e) => {
+        e.preventDefault();
+        // Room ID is already set in state
+    };
+
     return (
         <div>
-            <h2>Room ID: {roomId}</h2>
-            <video playsInline muted ref={userVideo} autoPlay />
-            {peers.map((peer, index) => (
-                <Video key={index} peer={peer} />
-            ))}
+            {!roomId ? (
+                <div>
+                    <button onClick={handleRoomCreate}>Create Room</button>
+                    <form onSubmit={handleRoomJoin}>
+                        <input
+                            type="text"
+                            value={roomId}
+                            onChange={(e) => setRoomId(e.target.value)}
+                            placeholder="Enter Room ID"
+                        />
+                        <button type="submit">Join Room</button>
+                    </form>
+                </div>
+            ) : (
+                <div>
+                    <h2>Room ID: {roomId}</h2>
+                    <video playsInline muted ref={userVideo} autoPlay />
+                    {peers.map((peer, index) => (
+                        <Video key={index} peer={peer} />
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
@@ -104,4 +124,4 @@ const Video = ({ peer }) => {
     return <video playsInline autoPlay ref={ref} />;
 };
 
-export default VideoRoom;
+export default VideoCall;
