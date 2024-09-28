@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaCamera, FaUserPlus, FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
+import { FaCamera, FaUserPlus, FaMicrophone, FaMicrophoneSlash, FaPalette } from 'react-icons/fa';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const VideoRoom = () => {
     const [roomId, setRoomId] = useState('');
     const [peers, setPeers] = useState([]);
-    const [isMicOn, setIsMicOn] = useState(true); // State to track mic status
-    const [isCameraOn, setIsCameraOn] = useState(true); // State to track camera status
+    const [isMicOn, setIsMicOn] = useState(true);
+    const [isCameraOn, setIsCameraOn] = useState(true);
     const socketRef = useRef();
     const userVideoRef = useRef();
     const peersRef = useRef([]);
     const streamRef = useRef();
+    const navigate = useNavigate(); // Initialize useNavigate
 
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
@@ -67,7 +69,6 @@ const VideoRoom = () => {
         };
     }, [roomId]);
 
-    // Toggle Mic function
     const toggleMic = () => {
         const audioTracks = streamRef.current.getAudioTracks();
         audioTracks.forEach(track => {
@@ -76,7 +77,6 @@ const VideoRoom = () => {
         setIsMicOn(prev => !prev);
     };
 
-    // Toggle Camera function
     const toggleCamera = () => {
         const videoTracks = streamRef.current.getVideoTracks();
         videoTracks.forEach(track => {
@@ -85,7 +85,7 @@ const VideoRoom = () => {
         setIsCameraOn(prev => !prev);
     };
 
-    function createPeer(userToSignal, callerID, stream) {
+    const createPeer = (userToSignal, callerID, stream) => {
         const peer = new Peer({
             initiator: true,
             trickle: false,
@@ -97,9 +97,9 @@ const VideoRoom = () => {
         });
 
         return peer;
-    }
+    };
 
-    function addPeer(incomingSignal, callerID, stream) {
+    const addPeer = (incomingSignal, callerID, stream) => {
         const peer = new Peer({
             initiator: false,
             trickle: false,
@@ -113,7 +113,7 @@ const VideoRoom = () => {
         peer.signal(incomingSignal);
 
         return peer;
-    }
+    };
 
     const handleRoomCreate = () => {
         const newRoomId = Math.random().toString(36).substring(7);
@@ -123,6 +123,11 @@ const VideoRoom = () => {
     const handleRoomJoin = (e) => {
         e.preventDefault();
         // Room ID is already set in state
+    };
+
+    // Button to navigate to whiteboard
+    const goToWhiteboard = () => {
+        navigate(`/whiteboard/${roomId}`); // Navigate to the whiteboard with the room ID
     };
 
     return (
@@ -188,6 +193,10 @@ const VideoRoom = () => {
                             {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                         </button>
                     </div>
+                    <button onClick={goToWhiteboard} className="mt-4 bg-blue-500 text-white py-2 px-4 rounded-lg transition duration-300 hover:bg-blue-600 flex items-center">
+                        <FaPalette className="mr-2" />
+                        Go to Whiteboard
+                    </button>
                 </motion.div>
             )}
         </div>
