@@ -7,7 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom'; // Import useNavigate
 
 const VideoRoom = () => {
     const { room } = useParams();
-    const [roomId, setRoomId] = useState(room?room:'');
+    const [roomId, setRoomId] = useState(room ? room : '');
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
     const [isCameraOn, setIsCameraOn] = useState(true);
@@ -135,13 +135,13 @@ const VideoRoom = () => {
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-gray-200 to-gray-300 p-4">
             <h1 className="text-5xl font-bold mb-8 text-pink-600 drop-shadow-lg">PaletteConnect</h1>
             {!roomId ? (
-                <motion.div 
+                <motion.div
                     className="bg-white p-8 rounded-lg shadow-lg transform transition-transform duration-300 hover:scale-105 w-full max-w-md"
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
                 >
                     <div className="flex flex-col items-center">
-                        <button 
+                        <button
                             className="bg-pink-500 text-white py-2 px-6 rounded-lg mb-4 transition duration-300 hover:bg-pink-600 transform hover:scale-105 flex items-center"
                             onClick={handleRoomCreate}>
                             <FaCamera className="mr-2" />
@@ -163,7 +163,7 @@ const VideoRoom = () => {
                     </div>
                 </motion.div>
             ) : (
-                <motion.div 
+                <motion.div
                     className="bg-white p-4 rounded-lg shadow-lg transform transition-transform duration-300 w-full"
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
@@ -217,11 +217,11 @@ const Video = ({ peer }) => {
 
     return (
         <div className="relative">
-            <video 
-                playsInline 
-                autoPlay 
-                ref={ref} 
-                className="rounded-lg shadow-md w-full" 
+            <video
+                playsInline
+                autoPlay
+                ref={ref}
+                className="rounded-lg shadow-md w-full"
             />
             <div className="absolute top-0 left-0 bg-gray-700 text-white text-sm font-semibold p-1 rounded-bl-lg">Participant</div>
         </div>
