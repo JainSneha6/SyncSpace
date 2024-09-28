@@ -6,7 +6,8 @@ import Peer from 'simple-peer';
 import { useParams } from 'react-router-dom';
 
 const VideoRoom = () => {
-    const { roomId } = useParams();
+    const { room } = useParams();
+    const [roomId, setRoomId] = useState(room?room:'')
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
     const [isCameraOn, setIsCameraOn] = useState(true);
