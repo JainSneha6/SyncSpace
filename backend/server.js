@@ -1,20 +1,31 @@
 const express = require('express');
 const http = require('http');
+const { Server } = require('socket.io');
+const cors = require('cors');
+
 const app = express();
+app.use(cors());
+
 const server = http.createServer(app);
-const socket = require('socket.io');
-const io = socket(server, {
+const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
+    origin: 'http://localhost:3000', // Adjust as needed for your frontend
+    methods: ['GET', 'POST'],
+  },
 });
 
 const PORT = 5000;
 
+// For video call
 const rooms = new Map();
 
+// For whiteboard
+const roomDrawings = {}; // Store drawings for each room
+
+// Video call socket events
 io.on('connection', (socket) => {
+  console.log('A user connected');
+
   socket.on('join room', (roomID) => {
     if (rooms.has(roomID)) {
       rooms.get(roomID).push(socket.id);
@@ -25,11 +36,11 @@ io.on('connection', (socket) => {
     socket.emit('all users', otherUsers);
   });
 
-  socket.on('sending signal', payload => {
+  socket.on('sending signal', (payload) => {
     io.to(payload.userToSignal).emit('user joined', { signal: payload.signal, callerID: payload.callerID });
   });
 
-  socket.on('returning signal', payload => {
+  socket.on('returning signal', (payload) => {
     io.to(payload.callerID).emit('receiving returned signal', { signal: payload.signal, id: socket.id });
   });
 
@@ -44,6 +55,40 @@ io.on('connection', (socket) => {
     });
     socket.broadcast.emit('user left', socket.id);
   });
+
+  // Whiteboard socket events
+  socket.on('joinRoom', (roomId) => {
+    socket.join(roomId);
+    console.log(`User joined room: ${roomId}`);
+
+    // Load existing drawings for the room
+    if (roomDrawings[roomId]) {
+      socket.emit('loadDrawing', roomDrawings[roomId]);
+    }
+  });
+
+  socket.on('drawing', ({ roomId, offsetX, offsetY, prevX, prevY, color, brushWidth }) => {
+    if (!roomDrawings[roomId]) {
+      roomDrawings[roomId] = [];
+    }
+
+    // Store the drawing data
+    roomDrawings[roomId].push({ offsetX, offsetY, prevX, prevY, color, brushWidth });
+
+    // Broadcast drawing to others in the room
+    socket.to(roomId).emit('drawing', { offsetX, offsetY, prevX, prevY, color, brushWidth });
+  });
+
+  socket.on('clearBoard', (roomId) => {
+    roomDrawings[roomId] = [];
+    socket.to(roomId).emit('clearBoard');
+  });
+
+  socket.on('disconnect', () => {
+    console.log('A user disconnected');
+  });
 });
 
-server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
