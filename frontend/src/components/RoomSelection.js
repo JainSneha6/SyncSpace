@@ -6,8 +6,7 @@ const RoomSelection = () => {
   const navigate = useNavigate();
 
   const handleCreateRoom = () => {
-    const newRoomId = `room-${Math.random().toString(36).substr(2, 9)
-      }`;
+    const newRoomId = `room-${Math.random().toString(36).substr(2, 9)}`;
     navigate(`/video/${newRoomId}`);
   };
 
@@ -16,7 +15,6 @@ const RoomSelection = () => {
       navigate(`/video/${roomId}`);
     }
   };
-
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">

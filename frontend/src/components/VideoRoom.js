@@ -1,90 +1,107 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { io } from 'socket.io-client';
-import SimplePeer from 'simple-peer';
-import { FaChalkboardTeacher } from 'react-icons/fa';
-
-const socket = io('https://paletteconnect.onrender.com'); // Adjust to your server URL
+import React, { useState, useEffect, useRef } from 'react';
+import io from 'socket.io-client';
+import Peer from 'simple-peer';
+import { useParams } from 'react-router-dom';
 
 const VideoRoom = () => {
-    const { roomId } = useParams();
-    const navigate = useNavigate();
+    const { roomId } = useParams(); // Get roomId from the URL parameters
     const [peers, setPeers] = useState([]);
+    const socketRef = useRef();
     const userVideo = useRef();
     const peersRef = useRef([]);
-    const videoGrid = useRef();
 
     useEffect(() => {
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
-            userVideo.current.srcObject = stream; // Show local video
+        socketRef.current = io.connect('http://localhost:5000');
 
-            socket.emit('joinRoom', roomId);
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then(stream => {
+                userVideo.current.srcObject = stream;
+                socketRef.current.emit('join room', roomId);
 
-            socket.on('user-connected', (userId) => {
-                const peer = createPeer(userId, socket.id, stream);
-                peersRef.current.push({ peerID: userId, peer });
-                setPeers((users) => [...users, peer]); // Update peers state
+                socketRef.current.on('all users', users => {
+                    const peers = [];
+                    users.forEach(userId => {
+                        const peer = createPeer(userId, socketRef.current.id, stream);
+                        peersRef.current.push({
+                            peerID: userId,
+                            peer,
+                        });
+                        peers.push(peer);
+                    });
+                    setPeers(peers);
+                });
+
+                socketRef.current.on('user joined', payload => {
+                    const peer = addPeer(payload.signal, payload.callerID, stream);
+                    peersRef.current.push({
+                        peerID: payload.callerID,
+                        peer,
+                    });
+                    setPeers(users => [...users, peer]);
+                });
+
+                socketRef.current.on('receiving returned signal', payload => {
+                    const item = peersRef.current.find(p => p.peerID === payload.id);
+                    item.peer.signal(payload.signal);
+                });
             });
-
-            socket.on('signal', ({ signalData, from }) => {
-                const peerObj = peersRef.current.find((p) => p.peerID === from);
-                if (peerObj) {
-                    peerObj.peer.signal(signalData);
-                }
-            });
-
-            socket.on('user-disconnected', (userId) => {
-                const peerObj = peersRef.current.find((p) => p.peerID === userId);
-                if (peerObj) {
-                    peerObj.peer.destroy(); // Destroy peer on disconnect
-                    setPeers((users) => users.filter((p) => p.peerID !== userId)); // Update peers state
-                }
-            });
-        });
 
         return () => {
-            socket.off('user-connected');
-            socket.off('signal');
-            socket.off('user-disconnected');
+            socketRef.current.disconnect();
         };
     }, [roomId]);
 
-    const createPeer = (userToSignal, callerID, stream) => {
-        const peer = new SimplePeer({
+    function createPeer(userToSignal, callerID, stream) {
+        const peer = new Peer({
             initiator: true,
             trickle: false,
             stream,
         });
 
-        peer.on('signal', (signal) => {
-            socket.emit('signal', { signalData: signal, to: userToSignal });
-        });
-
-        peer.on('stream', (stream) => {
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            video.play();
-            videoGrid.current.append(video); // Append the video to the grid
+        peer.on('signal', signal => {
+            socketRef.current.emit('sending signal', { userToSignal, callerID, signal });
         });
 
         return peer;
-    };
+    }
 
-    const joinWhiteboard = () => {
-        navigate(`/room/${roomId}`);
-    };
+    function addPeer(incomingSignal, callerID, stream) {
+        const peer = new Peer({
+            initiator: false,
+            trickle: false,
+            stream,
+        });
+
+        peer.on('signal', signal => {
+            socketRef.current.emit('returning signal', { signal, callerID });
+        });
+
+        peer.signal(incomingSignal);
+
+        return peer;
+    }
 
     return (
-        <div className="flex flex-col items-center p-4">
-            <div ref={videoGrid} className="flex flex-wrap justify-center items-center gap-4 mb-4">
-                <video muted ref={userVideo} autoPlay playsInline className="w-48 h-auto border-2 border-blue-500 rounded" />
-                {/* Peers' videos will be added to videoGrid */}
-            </div>
-            <button onClick={joinWhiteboard} className="flex items-center bg-gray-200 hover:bg-gray-300 text-black font-semibold py-2 px-4 rounded">
-                <FaChalkboardTeacher className="mr-2" /> Switch to Whiteboard
-            </button>
+        <div>
+            <h2>Room ID: {roomId}</h2>
+            <video playsInline muted ref={userVideo} autoPlay />
+            {peers.map((peer, index) => (
+                <Video key={index} peer={peer} />
+            ))}
         </div>
     );
+};
+
+const Video = ({ peer }) => {
+    const ref = useRef();
+
+    useEffect(() => {
+        peer.on('stream', stream => {
+            ref.current.srcObject = stream;
+        });
+    }, [peer]);
+
+    return <video playsInline autoPlay ref={ref} />;
 };
 
 export default VideoRoom;
