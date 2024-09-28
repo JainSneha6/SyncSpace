@@ -8,7 +8,6 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<VideoRoom/>} />
-        <Route path="/video-room/:room" element={<VideoRoom />} />
         <Route path="/whiteboard/:roomId" element={<Whiteboard />} />
       </Routes>
     </Router>
