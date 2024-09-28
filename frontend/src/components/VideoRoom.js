@@ -2,19 +2,26 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 
-const VideoCall = () => {
+const VideoRoom = () => {
     const [roomId, setRoomId] = useState('');
     const [peers, setPeers] = useState([]);
     const socketRef = useRef();
-    const userVideo = useRef();
+    const userVideoRef = useRef();
     const peersRef = useRef([]);
+    const streamRef = useRef();
 
     useEffect(() => {
-        socketRef.current = io.connect('http://localhost:5000');
+        socketRef.current = io.connect('https://paletteconnect.onrender.com');
+
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {
-                userVideo.current.srcObject = stream;
+                streamRef.current = stream;
+                if (userVideoRef.current) {
+                    userVideoRef.current.srcObject = stream;
+                }
+
                 socketRef.current.emit('join room', roomId);
+
                 socketRef.current.on('all users', users => {
                     const peers = [];
                     users.forEach(userId => {
@@ -41,7 +48,19 @@ const VideoCall = () => {
                     const item = peersRef.current.find(p => p.peerID === payload.id);
                     item.peer.signal(payload.signal);
                 });
+            })
+            .catch(err => {
+                console.error("Error accessing media devices:", err);
             });
+
+        return () => {
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
+        };
     }, [roomId]);
 
     function createPeer(userToSignal, callerID, stream) {
@@ -102,7 +121,7 @@ const VideoCall = () => {
             ) : (
                 <div>
                     <h2>Room ID: {roomId}</h2>
-                    <video playsInline muted ref={userVideo} autoPlay />
+                    <video playsInline muted ref={userVideoRef} autoPlay />
                     {peers.map((peer, index) => (
                         <Video key={index} peer={peer} />
                     ))}
@@ -117,11 +136,13 @@ const Video = ({ peer }) => {
 
     useEffect(() => {
         peer.on('stream', stream => {
-            ref.current.srcObject = stream;
+            if (ref.current) {
+                ref.current.srcObject = stream;
+            }
         });
     }, [peer]);
 
     return <video playsInline autoPlay ref={ref} />;
 };
 
-export default VideoCall;
+export default VideoRoom;
