@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { FaPaperPlane, FaSmile, FaSearch } from 'react-icons/fa';
-import axios from 'axios';  // For API calls
+import { FaPaperPlane, FaSmile, FaSearch, FaImage } from 'react-icons/fa'; // Changed GIF icon to FaImage
+import axios from 'axios'; // For API calls
+import EmojiPicker from 'emoji-picker-react'; // For emoji picker
 
-const GIPHY_API_KEY = 'N8zxen9SSipE8ZLfgl8SZX3t8yzlZXSS';  // Replace with your actual Giphy API Key
+const GIPHY_API_KEY = 'N8zxen9SSipE8ZLfgl8SZX3t8yzlZXSS'; // Replace with your actual Giphy API Key
 
 const Chat = ({ socketRef, roomId }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [gifs, setGifs] = useState([]); // Store fetched GIFs
-  const [searchQuery, setSearchQuery] = useState('');  // Search query for Giphy
+  const [searchQuery, setSearchQuery] = useState(''); // Search query for Giphy
 
   useEffect(() => {
     if (socketRef.current) {
@@ -38,9 +40,8 @@ const Chat = ({ socketRef, roomId }) => {
   };
 
   const handleSendGif = (gifUrl) => {
-    // Sending GIF URL as a message
     handleSendMessage(gifUrl);
-    setShowGifPicker(false);  // Close the GIF picker after sending
+    setShowGifPicker(false); // Close the GIF picker after sending
   };
 
   const fetchGifs = async (query) => {
@@ -51,12 +52,16 @@ const Chat = ({ socketRef, roomId }) => {
         limit: 10
       }
     });
-    setGifs(res.data.data);  // Giphy API response contains the GIFs in `data.data`
+    setGifs(res.data.data); // Giphy API response contains the GIFs in `data.data`
   };
 
   const handleSearchGiphy = (e) => {
     e.preventDefault();
     fetchGifs(searchQuery);
+  };
+
+  const handleEmojiClick = (emojiObject) => {
+    setNewMessage(prevMessage => prevMessage + emojiObject.emoji); // Append emoji to the message
   };
 
   const renderMessages = () => {
@@ -74,7 +79,7 @@ const Chat = ({ socketRef, roomId }) => {
   };
 
   return (
-    <div className="mt-4">
+    <div className="mt-4 relative">
       <h3 className="text-lg font-semibold mb-2">Chat</h3>
       <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">
         {renderMessages()}
@@ -109,6 +114,13 @@ const Chat = ({ socketRef, roomId }) => {
         </div>
       )}
 
+      {/* Emoji Picker Toggle */}
+      {showEmojiPicker && (
+        <div className="absolute bottom-20 right-10 z-10">
+          <EmojiPicker onEmojiClick={handleEmojiClick} />
+        </div>
+      )}
+
       <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(newMessage); }} className="flex">
         <input
           type="text"
@@ -117,11 +129,20 @@ const Chat = ({ socketRef, roomId }) => {
           placeholder="Type a message..."
           className="border border-gray-300 p-2 rounded-lg flex-grow"
         />
+
+        {/* GIF Button with new icon */}
+        <button type="button" className="bg-yellow-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-yellow-600 flex items-center" onClick={() => setShowGifPicker(!showGifPicker)}>
+          <FaImage /> {/* Changed icon to FaImage */}
+        </button>
+
+        {/* Emoji Button */}
+        <button type="button" className="text-gray-500 p-2 ml-2 hover:text-pink-500 transition duration-300" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+          <FaSmile size={24} />
+        </button>
+
+        {/* Send Button */}
         <button type="submit" className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center">
           <FaPaperPlane />
-        </button>
-        <button type="button" className="bg-yellow-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-yellow-600 flex items-center" onClick={() => setShowGifPicker(!showGifPicker)}>
-          <FaSmile />
         </button>
       </form>
     </div>
