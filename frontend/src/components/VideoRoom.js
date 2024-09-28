@@ -129,7 +129,7 @@ const VideoRoom = () => {
                                 placeholder="Enter Room ID"
                                 className="border-2 border-gray-300 p-3 rounded-lg mb-4 w-full transition duration-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
                             />
-                            <button type="submit" className="bg-pink-500 text-white py-2 px-6 rounded-lg transition duration-300 hover:bg-pink-600 transform hover:scale-105 flex items-center justify-center" style={{marginLeft:'30px'}}>
+                            <button type="submit" className="bg-pink-500 text-white py-2 px-6 rounded-lg transition duration-300 hover:bg-pink-600 transform hover:scale-105 flex items-center justify-center">
                                 <FaUserPlus className="mr-2" />
                                 Join Room
                             </button>
@@ -143,10 +143,12 @@ const VideoRoom = () => {
                     animate={{ scale: 1 }}
                 >
                     <h2 className="text-2xl mb-4 text-gray-700">Room ID: {roomId}</h2>
-                    <video playsInline muted ref={userVideoRef} autoPlay className="w-full rounded-lg mb-4 shadow-md" />
-                    {peers.map((peer, index) => (
-                        <Video key={index} peer={peer} />
-                    ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <video playsInline muted ref={userVideoRef} autoPlay className="rounded-lg shadow-md" />
+                        {peers.map((peer, index) => (
+                            <Video key={index} peer={peer} />
+                        ))}
+                    </div>
                 </motion.div>
             )}
         </div>
@@ -169,7 +171,7 @@ const Video = ({ peer }) => {
             playsInline 
             autoPlay 
             ref={ref} 
-            className="w-full rounded-lg mb-4 shadow-md transition-transform duration-500 hover:scale-105" 
+            className="rounded-lg shadow-md transition-transform duration-500 hover:scale-105" 
         />
     );
 };
