@@ -88,6 +88,25 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('clearBoard');
   });
 
+  // Screen sharing events
+  socket.on('startScreenShare', (roomId) => {
+    socket.join(roomId);
+    console.log(`User ${socket.id} started screen sharing in room: ${roomId}`);
+    socket.to(roomId).emit('userStartedScreenShare', socket.id);
+  });
+
+  socket.on('stopScreenShare', (roomId) => {
+    console.log(`User ${socket.id} stopped screen sharing in room: ${roomId}`);
+    socket.to(roomId).emit('userStoppedScreenShare', socket.id);
+  });
+
+  socket.on('screenSignal', (payload) => {
+    socket.to(payload.roomId).emit('screenSignal', {
+      signal: payload.signal,
+      callerID: socket.id,
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log('A user disconnected');
     rooms.forEach((value, key) => {

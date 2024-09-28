@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { FaPaperPlane, FaSmile, FaSearch, FaImage } from 'react-icons/fa'; // Changed GIF icon to FaImage
+import React, { useState, useEffect, useRef } from 'react';
+import { FaPaperPlane, FaSmile, FaSearch, FaImage, FaDesktop } from 'react-icons/fa'; // Added FaDesktop for screen sharing
 import axios from 'axios'; // For API calls
 import EmojiPicker from 'emoji-picker-react'; // For emoji picker
+import Peer from 'simple-peer'; // Import Simple Peer
 
 const GIPHY_API_KEY = 'N8zxen9SSipE8ZLfgl8SZX3t8yzlZXSS'; // Replace with your actual Giphy API Key
 
@@ -12,6 +13,9 @@ const Chat = ({ socketRef, roomId }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [gifs, setGifs] = useState([]); // Store fetched GIFs
   const [searchQuery, setSearchQuery] = useState(''); // Search query for Giphy
+  const [isSharing, setIsSharing] = useState(false); // State for screen sharing
+  const [peer, setPeer] = useState(null); // Peer connection
+  const videoRef = useRef(); // Reference to video element
 
   useEffect(() => {
     if (socketRef.current) {
@@ -25,12 +29,19 @@ const Chat = ({ socketRef, roomId }) => {
         setMessages(prevMessages => [...prevMessages, { message, id }]);
       });
 
+      socketRef.current.on('screenSignal', (signal) => {
+        if (peer) {
+          peer.signal(signal); // Handle incoming screen signal
+        }
+      });
+
       return () => {
         socketRef.current.off('chatHistory');
         socketRef.current.off('receiveMessage');
+        socketRef.current.off('screenSignal');
       };
     }
-  }, [socketRef, roomId]);
+  }, [socketRef, roomId, peer]);
 
   const handleSendMessage = (message) => {
     if (message.trim() !== '') {
@@ -62,6 +73,35 @@ const Chat = ({ socketRef, roomId }) => {
 
   const handleEmojiClick = (emojiObject) => {
     setNewMessage(prevMessage => prevMessage + emojiObject.emoji); // Append emoji to the message
+  };
+
+  const startScreenSharing = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true }); // Get screen stream
+      const peerConnection = new Peer({ initiator: true, trickle: false, stream }); // Create peer connection
+
+      peerConnection.on('signal', (signal) => {
+        socketRef.current.emit('screenSignal', { roomId, signal }); // Send signal to server
+      });
+
+      peerConnection.on('stream', (remoteStream) => {
+        videoRef.current.srcObject = remoteStream; // Set received stream to the video element
+      });
+
+      setPeer(peerConnection); // Store the peer connection
+      setIsSharing(true); // Update sharing state
+    } catch (error) {
+      console.error('Error sharing screen:', error);
+    }
+  };
+
+  const stopScreenSharing = () => {
+    if (peer) {
+      peer.destroy(); // Destroy the peer connection
+      setPeer(null); // Reset peer connection
+    }
+    setIsSharing(false); // Update sharing state
+    videoRef.current.srcObject = null; // Clear video element
   };
 
   const renderMessages = () => {
@@ -120,6 +160,14 @@ const Chat = ({ socketRef, roomId }) => {
           <EmojiPicker onEmojiClick={handleEmojiClick} />
         </div>
       )}
+
+      {/* Screen Sharing */}
+      <button onClick={isSharing ? stopScreenSharing : startScreenSharing} className="bg-green-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-green-600 flex items-center">
+        <FaDesktop /> {/* Screen sharing icon */}
+        {isSharing ? ' Stop Sharing' : ' Share Screen'}
+      </button>
+
+      <video ref={videoRef} autoPlay muted className="w-full h-64 border rounded-lg mt-2" /> {/* Video element to display shared screen */}
 
       <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(newMessage); }} className="flex">
         <input
