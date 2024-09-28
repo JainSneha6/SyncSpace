@@ -5,16 +5,20 @@ const Chat = ({ socketRef, roomId }) => {
   const [messages, setMessages] = useState([]);  // State for chat messages
   const [newMessage, setNewMessage] = useState('');  // State for new message input
 
-
-
   useEffect(() => {
-    // Listen for incoming messages
+    // Listen for chat history when joining a room
     if (socketRef.current) {
+      socketRef.current.on('chatHistory', (history) => {
+        setMessages(history);  // Load chat history
+      });
+
+      // Listen for incoming messages
       socketRef.current.on('receiveMessage', ({ message, id }) => {
         setMessages(prevMessages => [...prevMessages, { message, id }]);
       });
 
       return () => {
+        socketRef.current.off('chatHistory');
         socketRef.current.off('receiveMessage');
       };
     }
