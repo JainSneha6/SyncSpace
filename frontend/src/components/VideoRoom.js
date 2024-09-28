@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 
-const VideoCall = () => {
+const VideoRoom = () => {
     const [roomId, setRoomId] = useState('');
     const [peers, setPeers] = useState([]);
     const socketRef = useRef();
@@ -145,4 +145,4 @@ const Video = ({ peer }) => {
     return <video playsInline autoPlay ref={ref} />;
 };
 
-export default VideoCall;
+export default VideoRoom;

@@ -1,19 +1,17 @@
 const express = require('express');
 const http = require('http');
-const socket = require('socket.io');
-
 const app = express();
 const server = http.createServer(app);
+const socket = require('socket.io');
 const io = socket(server, {
   cors: {
-    origin: "http://localhost:3000", // Adjust as necessary
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"]
   }
 });
 
 const PORT = process.env.PORT || 5000;
 
-// Store rooms and participants
 const rooms = new Map();
 
 io.on('connection', (socket) => {
@@ -25,11 +23,6 @@ io.on('connection', (socket) => {
     }
     const otherUsers = rooms.get(roomID).filter(id => id !== socket.id);
     socket.emit('all users', otherUsers);
-
-    // Notify other users that a new user has joined
-    otherUsers.forEach(userId => {
-      io.to(userId).emit('user joined', { signal: null, callerID: socket.id });
-    });
   });
 
   socket.on('sending signal', payload => {
