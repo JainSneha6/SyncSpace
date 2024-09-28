@@ -29,9 +29,10 @@ const Chat = ({ socketRef, roomId }) => {
         setMessages(prevMessages => [...prevMessages, { message, id }]);
       });
 
+      // Listen for screen sharing signals from other users
       socketRef.current.on('screenSignal', (signal) => {
         if (peer) {
-          peer.signal(signal); // Handle incoming screen signal
+          peer.signal(signal); // Signal the incoming stream
         }
       });
 
