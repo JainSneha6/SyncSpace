@@ -4,8 +4,7 @@ import Peer from 'simple-peer';
 import { useParams } from 'react-router-dom';
 
 const VideoRoom = () => {
-    const { roomId } = useParams()
-    // const [roomId, setRoomId] = useState('');
+    const { roomId } = useParams();
     const [peers, setPeers] = useState([]);
     const socketRef = useRef();
     const userVideoRef = useRef();
@@ -95,27 +94,13 @@ const VideoRoom = () => {
         return peer;
     }
 
-    // const handleRoomCreate = () => {
-    //     const newRoomId = Math.random().toString(36).substring(7);
-    //     setRoomId(newRoomId);
-    // };
-
-    // const handleRoomJoin = (e) => {
-    //     e.preventDefault();
-    //     // Room ID is already set in state
-    // };
-
     return (
         <div>
-            {(
-                <div>
-                    <h2>Room ID: {roomId}</h2>
-                    <video playsInline muted ref={userVideoRef} autoPlay />
-                    {peers.map((peer, index) => (
-                        <Video key={index} peer={peer} />
-                    ))}
-                </div>
-            )}
+            <h2>Room ID: {roomId}</h2>
+            <video playsInline muted ref={userVideoRef} autoPlay />
+            {peers.map((peer, index) => (
+                <Video key={index} peer={peer} />
+            ))}
         </div>
     );
 };
