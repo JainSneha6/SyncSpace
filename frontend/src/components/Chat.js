@@ -8,6 +8,9 @@ const Chat = ({ socketRef, roomId }) => {
   useEffect(() => {
     // Listen for chat history when joining a room
     if (socketRef.current) {
+
+      socketRef.current.emit('joinRoom', roomId);
+
       socketRef.current.on('chatHistory', (history) => {
         setMessages(history);  // Load chat history
       });
@@ -22,17 +25,23 @@ const Chat = ({ socketRef, roomId }) => {
         socketRef.current.off('receiveMessage');
       };
     }
-  }, [socketRef]);
+  }, [socketRef, roomId]);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
-    if (newMessage.trim() !== '' && roomId) {  // Ensure message is not empty and roomId exists
+    if (newMessage.trim() !== '') {
+      const messageData = { message: newMessage };
+
+      // Emit message to the server
       socketRef.current.emit('sendMessage', { roomId, message: newMessage });
-      setMessages(prevMessages => [...prevMessages, { message: newMessage, id: socketRef.current.id }]);  // Add sender's message immediately
-      setNewMessage('');  // Clear the input field
+
+      // Clear the message input field
+      setNewMessage('');
     }
   };
 
+
+  // Render the list of chat messages
   const renderMessages = () => {
     return messages.map((msg, index) => (
       <div key={index} className={`mb-2 ${msg.id === socketRef.current.id ? 'text-right' : ''}`}>
