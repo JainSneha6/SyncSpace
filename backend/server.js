@@ -16,13 +16,10 @@ const io = new Server(server, {
 
 const PORT = 5000;
 
-// For video call
 const rooms = new Map();
-
-// For whiteboard
 const roomDrawings = {}; // Store drawings for each room
+const roomMessages = {}; // Store chat messages for each room
 
-// Video call socket events
 io.on('connection', (socket) => {
   console.log('A user connected');
 
@@ -32,8 +29,14 @@ io.on('connection', (socket) => {
     } else {
       rooms.set(roomID, [socket.id]);
     }
+
     const otherUsers = rooms.get(roomID).filter(id => id !== socket.id);
     socket.emit('all users', otherUsers);
+
+    // Send chat history to the new user
+    if (roomMessages[roomID]) {
+      socket.emit('chatHistory', roomMessages[roomID]);
+    }
   });
 
   socket.on('sending signal', (payload) => {
@@ -44,16 +47,17 @@ io.on('connection', (socket) => {
     io.to(payload.callerID).emit('receiving returned signal', { signal: payload.signal, id: socket.id });
   });
 
-  socket.on('disconnect', () => {
-    rooms.forEach((value, key) => {
-      if (value.includes(socket.id)) {
-        rooms.set(key, value.filter(id => id !== socket.id));
-        if (rooms.get(key).length === 0) {
-          rooms.delete(key);
-        }
-      }
-    });
-    socket.broadcast.emit('user left', socket.id);
+  // Handle chat messages
+  socket.on('sendMessage', ({ roomId, message }) => {
+    if (!roomMessages[roomId]) {
+      roomMessages[roomId] = [];
+    }
+
+    const chatMessage = { message, id: socket.id };
+    roomMessages[roomId].push(chatMessage);
+
+    // Emit the message to everyone in the room, including the sender
+    io.in(roomId).emit('receiveMessage', chatMessage);
   });
 
   // Whiteboard socket events
@@ -84,12 +88,17 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('clearBoard');
   });
 
-  socket.on('sendMessage', ({ roomId, message }) => {
-    io.in(roomId).emit('receiveMessage', { message, id: socket.id });  // Emit to everyone in the room
-  });
-
   socket.on('disconnect', () => {
     console.log('A user disconnected');
+    rooms.forEach((value, key) => {
+      if (value.includes(socket.id)) {
+        rooms.set(key, value.filter(id => id !== socket.id));
+        if (rooms.get(key).length === 0) {
+          rooms.delete(key);
+        }
+      }
+    });
+    socket.broadcast.emit('user left', socket.id);
   });
 });
 
