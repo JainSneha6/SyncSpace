@@ -183,7 +183,7 @@ const VideoRoom = () => {
                                 <p className="text-gray-600">Waiting for a participant...</p>
                             </div>
                         )}
-                        <Chat />
+                        <Chat roomId={roomId}/>
                     </div>
                     <div className="flex justify-center mt-4">
                         <button onClick={toggleMic} className="bg-pink-500 text-white py-2 px-4 rounded-lg mr-4 transition duration-300 hover:bg-pink-600 flex items-center">

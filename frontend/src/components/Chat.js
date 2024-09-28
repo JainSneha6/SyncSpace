@@ -4,10 +4,9 @@ import { useParams } from 'react-router-dom';
 
 const socket = io('https://paletteconnect.onrender.com'); // Connect to the backend
 
-const Chat = () => {
+const Chat = ({roomId}) => {
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState([]);
-    const { roomId } = useParams(); // Getting the room ID from the URL params
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
