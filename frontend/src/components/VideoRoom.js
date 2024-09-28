@@ -27,33 +27,31 @@ const VideoRoom = () => {
 
                 socketRef.current.emit('join room', roomId);
 
+                // Handle existing users when you join the room
                 socketRef.current.on('all users', users => {
                     const peers = [];
                     users.forEach(userId => {
                         const peer = createPeer(userId, socketRef.current.id, stream);
-                        peersRef.current.push({
-                            peerID: userId,
-                            peer,
-                        });
+                        peersRef.current.push({ peerID: userId, peer });
                         peers.push(peer);
                     });
                     setPeers(peers);
                 });
 
+                // Handle a new user joining
                 socketRef.current.on('user joined', payload => {
                     const peer = addPeer(payload.signal, payload.callerID, stream);
-                    peersRef.current.push({
-                        peerID: payload.callerID,
-                        peer,
-                    });
+                    peersRef.current.push({ peerID: payload.callerID, peer });
                     setPeers(users => [...users, peer]);
                 });
 
+                // Handling incoming signals
                 socketRef.current.on('receiving returned signal', payload => {
                     const item = peersRef.current.find(p => p.peerID === payload.id);
                     item.peer.signal(payload.signal);
                 });
 
+                // Handle user leaving
                 socketRef.current.on('user left', id => {
                     const peerObj = peersRef.current.find(p => p.peerID === id);
                     if (peerObj) {
