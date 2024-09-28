@@ -106,11 +106,19 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('receive message', chatMessage);
   });
 
+  // Load existing chat messages for the room when a user joins
+  socket.on('requestMessages', (roomId) => {
+    if (roomMessages[roomId]) {
+      socket.emit('loadMessages', roomMessages[roomId]);
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('A user disconnected');
   });
 });
 
+// Start the server
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

@@ -12,7 +12,7 @@ const Chat = () => {
 
     useEffect(() => {
         // Join the room for chat
-        socket.emit('join room', roomId);
+        socket.emit('join room', roomId); // Ensure this line is included
 
         // Listen for incoming messages
         socket.on('receive message', (data) => {
