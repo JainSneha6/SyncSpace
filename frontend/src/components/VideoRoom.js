@@ -12,7 +12,7 @@ const VideoRoom = () => {
     const streamRef = useRef();
 
     useEffect(() => {
-        socketRef.current = io.connect('https://paletteconnect.onrender.com');
+        socketRef.current = io.connect('https://paletteconnect.onrender.com'); // Update this URL as necessary
 
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {
@@ -43,16 +43,6 @@ const VideoRoom = () => {
                     const item = peersRef.current.find(p => p.peerID === payload.id);
                     item.peer.signal(payload.signal);
                 });
-
-                // Emit existing streams for new users
-                socketRef.current.on('existing users', (streams) => {
-                    streams.forEach((streamData) => {
-                        const peer = addPeer(streamData.signal, streamData.callerID, stream);
-                        peersRef.current.push({ peerID: streamData.callerID, peer });
-                        setPeers(users => [...users, peer]);
-                    });
-                });
-
             })
             .catch(err => {
                 console.error("Error accessing media devices:", err);
