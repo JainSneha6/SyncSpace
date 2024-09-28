@@ -3,7 +3,8 @@ import { FaCamera, FaUserPlus, FaMicrophone, FaMicrophoneSlash, FaPalette } from
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
+import Chat from './Chat'; 
 
 const VideoRoom = () => {
     const [roomId, setRoomId] = useState('');
@@ -182,6 +183,7 @@ const VideoRoom = () => {
                                 <p className="text-gray-600">Waiting for a participant...</p>
                             </div>
                         )}
+                        <Chat />
                     </div>
                     <div className="flex justify-center mt-4">
                         <button onClick={toggleMic} className="bg-pink-500 text-white py-2 px-4 rounded-lg mr-4 transition duration-300 hover:bg-pink-600 flex items-center">
