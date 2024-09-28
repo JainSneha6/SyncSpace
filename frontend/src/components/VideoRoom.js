@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
+import { useParams } from 'react-router-dom';
 
 const VideoRoom = () => {
-    const [roomId, setRoomId] = useState('');
+    const { roomId } = useParams()
+    // const [roomId, setRoomId] = useState('');
     const [peers, setPeers] = useState([]);
     const socketRef = useRef();
     const userVideoRef = useRef();
@@ -93,32 +95,19 @@ const VideoRoom = () => {
         return peer;
     }
 
-    const handleRoomCreate = () => {
-        const newRoomId = Math.random().toString(36).substring(7);
-        setRoomId(newRoomId);
-    };
+    // const handleRoomCreate = () => {
+    //     const newRoomId = Math.random().toString(36).substring(7);
+    //     setRoomId(newRoomId);
+    // };
 
-    const handleRoomJoin = (e) => {
-        e.preventDefault();
-        // Room ID is already set in state
-    };
+    // const handleRoomJoin = (e) => {
+    //     e.preventDefault();
+    //     // Room ID is already set in state
+    // };
 
     return (
         <div>
-            {!roomId ? (
-                <div>
-                    <button onClick={handleRoomCreate}>Create Room</button>
-                    <form onSubmit={handleRoomJoin}>
-                        <input
-                            type="text"
-                            value={roomId}
-                            onChange={(e) => setRoomId(e.target.value)}
-                            placeholder="Enter Room ID"
-                        />
-                        <button type="submit">Join Room</button>
-                    </form>
-                </div>
-            ) : (
+            {(
                 <div>
                     <h2>Room ID: {roomId}</h2>
                     <video playsInline muted ref={userVideoRef} autoPlay />

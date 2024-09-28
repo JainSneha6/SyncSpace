@@ -8,7 +8,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<VideoRoom />} />
+        <Route path="/" element={<RoomSelection />} />
         <Route path="/video/:roomId" element={<VideoRoom />} />
         <Route path="/room/:roomId" element={<Whiteboard />} />
       </Routes>
