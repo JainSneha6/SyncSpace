@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useParams } from 'react-router-dom';
-import { FaPalette, FaTrash, FaPaintBrush, FaBrush, FaEraser } from 'react-icons/fa';
+import { FaPalette, FaTrash, FaPaintBrush, FaBrush, FaEraser, FaSquare, FaCircle, FaSlash } from 'react-icons/fa';
 import { ChromePicker } from 'react-color';
 
-const socket = io('http://localhost:5000'); // Connect to the backend
+const socket = io('https://paletteconnect.onrender.com'); // Connect to the backend
 
 const Whiteboard = () => {
   const canvasRef = useRef(null);
@@ -15,7 +15,6 @@ const Whiteboard = () => {
   const [eraserWidth, setEraserWidth] = useState(10); // Default eraser width
   const [showSlider, setShowSlider] = useState(false);
   const [brushType, setBrushType] = useState('Brush'); // Default brush type
-  const [showBrushOptions, setShowBrushOptions] = useState(false);
   const [isErasing, setIsErasing] = useState(false); // State to toggle eraser
   const { roomId } = useParams();
 
@@ -36,6 +35,22 @@ const Whiteboard = () => {
       drawLine(ctx, prevX, prevY, offsetX, offsetY, color, brushWidth);
     });
 
+    socket.on('drawingShape', ({ shapeType, startX, startY, endX, endY, color, brushWidth }) => {
+      switch (shapeType) {
+        case 'Rectangle':
+          drawRectangle(ctx, startX, startY, endX - startX, endY - startY, color, brushWidth);
+          break;
+        case 'Circle':
+          drawCircle(ctx, startX, startY, Math.abs(endX - startX), Math.abs(endY - startY), color, brushWidth);
+          break;
+        case 'Line':
+          drawLine(ctx, startX, startY, endX, endY, color, brushWidth);
+          break;
+        default:
+          break;
+      }
+    });
+
     socket.on('clearBoard', () => {
       clearCanvas(ctx);
     });
@@ -43,6 +58,7 @@ const Whiteboard = () => {
     return () => {
       socket.off('loadDrawing');
       socket.off('drawing');
+      socket.off('drawingShape');
       socket.off('clearBoard');
     };
   }, [roomId]);
@@ -50,16 +66,30 @@ const Whiteboard = () => {
   const startDrawing = (event) => {
     const { offsetX, offsetY } = event.nativeEvent;
     const ctx = canvasRef.current.getContext('2d');
-    ctx.beginPath();
-    ctx.moveTo(offsetX, offsetY);
     setIsDrawing(true);
-    ctx.prevPos = { offsetX, offsetY }; // Store the starting position
+    ctx.startPos = { offsetX, offsetY }; // Store the starting position
   };
 
   const finishDrawing = () => {
-    setIsDrawing(false);
+    if (!isDrawing) return;
     const ctx = canvasRef.current.getContext('2d');
-    ctx.prevPos = null; // Clear the previous position on finish
+    const { offsetX, offsetY } = ctx.startPos;
+    const { offsetX: endX, offsetY: endY } = ctx.endPos;
+
+    // Emit shape drawing to socket
+    if (brushType !== 'Brush') {
+      socket.emit('drawingShape', {
+        roomId,
+        shapeType: brushType,
+        startX: offsetX,
+        startY: offsetY,
+        endX,
+        endY,
+        color,
+        brushWidth,
+      });
+    }
+    setIsDrawing(false);
   };
 
   const draw = (event) => {
@@ -67,23 +97,22 @@ const Whiteboard = () => {
 
     const { offsetX, offsetY } = event.nativeEvent;
     const ctx = canvasRef.current.getContext('2d');
-    const prevPos = ctx.prevPos;
+    ctx.endPos = { offsetX, offsetY };
 
-    if (prevPos) {
-      const width = isErasing ? eraserWidth : brushWidth;
-      const colorToUse = isErasing ? '#FFFFFF' : color; // Use white for eraser
-      drawLine(ctx, prevPos.offsetX, prevPos.offsetY, offsetX, offsetY, colorToUse, width);
-      ctx.prevPos = { offsetX, offsetY };
+    clearCanvas(ctx); // Clear canvas before drawing the new shape
 
-      socket.emit('drawing', {
-        roomId,
-        offsetX,
-        offsetY,
-        prevX: prevPos.offsetX,
-        prevY: prevPos.offsetY,
-        color: colorToUse,
-        brushWidth: width
-      });
+    switch (brushType) {
+      case 'Rectangle':
+        drawRectangle(ctx, ctx.startPos.offsetX, ctx.startPos.offsetY, offsetX - ctx.startPos.offsetX, offsetY - ctx.startPos.offsetY, color, brushWidth);
+        break;
+      case 'Circle':
+        drawCircle(ctx, ctx.startPos.offsetX, ctx.startPos.offsetY, Math.abs(offsetX - ctx.startPos.offsetX), Math.abs(offsetY - ctx.startPos.offsetY), color, brushWidth);
+        break;
+      case 'Line':
+        drawLine(ctx, ctx.startPos.offsetX, ctx.startPos.offsetY, offsetX, offsetY, color, brushWidth);
+        break;
+      default:
+        drawLine(ctx, ctx.startPos.offsetX, ctx.startPos.offsetY, offsetX, offsetY, color, brushWidth);
     }
   };
 
@@ -94,6 +123,22 @@ const Whiteboard = () => {
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
+    ctx.stroke();
+  };
+
+  const drawRectangle = (ctx, x, y, width, height, color, lineWidth) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.stroke();
+  };
+
+  const drawCircle = (ctx, x, y, radiusX, radiusY, color, lineWidth) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.ellipse(x, y, radiusX, radiusY, 0, 0, Math.PI * 2);
     ctx.stroke();
   };
 
@@ -168,21 +213,34 @@ const Whiteboard = () => {
       <span className="text-gray-700 absolute right-8 top-12" style={{ display: isErasing ? 'block' : 'none' }}>
         {eraserWidth}
       </span>
-      {/* Clear board button */}
+      {/* Shape selection buttons */}
+      <div className="absolute left-16 top-4 flex space-x-4">
+        <button onClick={() => setBrushType('Rectangle')} className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600">
+          <FaSquare className="text-2xl" />
+        </button>
+        <button onClick={() => setBrushType('Circle')} className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
+          <FaCircle className="text-2xl" />
+        </button>
+        <button onClick={() => setBrushType('Line')} className="p-2 bg-purple-500 text-white rounded-full hover:bg-purple-600">
+          <FaSlash className="text-2xl" />
+        </button>
+      </div>
+      {/* Clear Board button */}
       <button
         onClick={clearBoard}
         className="absolute right-4 top-4 p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
       >
         <FaTrash className="text-2xl" />
       </button>
+      {/* Canvas */}
       <canvas
         ref={canvasRef}
-        onMouseDown={startDrawing}
-        onMouseUp={finishDrawing}
-        onMouseMove={draw}
         width={800}
         height={600}
-        className="border border-gray-300 rounded-lg shadow-lg bg-white"
+        className="bg-white border border-gray-300 shadow-lg"
+        onMouseDown={startDrawing}
+        onMouseMove={draw}
+        onMouseUp={finishDrawing}
       />
     </div>
   );

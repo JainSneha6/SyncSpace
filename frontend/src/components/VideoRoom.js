@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { FaChalkboardTeacher } from 'react-icons/fa';
 
-const socket = io('http://localhost:5000');
+const socket = io('https://paletteconnect.onrender.com');
 
 const VideoRoom = () => {
     const { roomId } = useParams();
