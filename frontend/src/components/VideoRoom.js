@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { FaCamera, FaUserPlus } from 'react-icons/fa'; // Importing React icons
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
+import { motion } from 'framer-motion';
 
 const VideoRoom = () => {
     const [roomId, setRoomId] = useState('');
@@ -104,28 +106,48 @@ const VideoRoom = () => {
     };
 
     return (
-        <div>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-gray-200 to-gray-300">
+            <h1 className="text-5xl font-bold mb-8 text-pink-600 drop-shadow-lg">PaletteConnect</h1>
             {!roomId ? (
-                <div>
-                    <button onClick={handleRoomCreate}>Create Room</button>
-                    <form onSubmit={handleRoomJoin}>
-                        <input
-                            type="text"
-                            value={roomId}
-                            onChange={(e) => setRoomId(e.target.value)}
-                            placeholder="Enter Room ID"
-                        />
-                        <button type="submit">Join Room</button>
-                    </form>
-                </div>
+                <motion.div 
+                    className="bg-white p-8 rounded-lg shadow-lg transform transition-transform duration-300 hover:scale-105"
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                >
+                    <div className="flex flex-col items-center">
+                        <button 
+                            className="bg-pink-500 text-white py-2 px-6 rounded-lg mb-4 transition duration-300 hover:bg-pink-600 transform hover:scale-105 flex items-center"
+                            onClick={handleRoomCreate}>
+                            <FaCamera className="mr-2" />
+                            Create Room
+                        </button>
+                        <form onSubmit={handleRoomJoin} className="w-full">
+                            <input
+                                type="text"
+                                value={roomId}
+                                onChange={(e) => setRoomId(e.target.value)}
+                                placeholder="Enter Room ID"
+                                className="border-2 border-gray-300 p-3 rounded-lg mb-4 w-full transition duration-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
+                            />
+                            <button type="submit" className="bg-pink-500 text-white py-2 px-6 rounded-lg transition duration-300 hover:bg-pink-600 transform hover:scale-105 flex items-center justify-center" style={{marginLeft:'30px'}}>
+                                <FaUserPlus className="mr-2" />
+                                Join Room
+                            </button>
+                        </form>
+                    </div>
+                </motion.div>
             ) : (
-                <div>
-                    <h2>Room ID: {roomId}</h2>
-                    <video playsInline muted ref={userVideoRef} autoPlay />
+                <motion.div 
+                    className="bg-white p-8 rounded-lg shadow-lg transform transition-transform duration-300"
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                >
+                    <h2 className="text-2xl mb-4 text-gray-700">Room ID: {roomId}</h2>
+                    <video playsInline muted ref={userVideoRef} autoPlay className="w-full rounded-lg mb-4 shadow-md" />
                     {peers.map((peer, index) => (
                         <Video key={index} peer={peer} />
                     ))}
-                </div>
+                </motion.div>
             )}
         </div>
     );
@@ -142,7 +164,14 @@ const Video = ({ peer }) => {
         });
     }, [peer]);
 
-    return <video playsInline autoPlay ref={ref} />;
+    return (
+        <video 
+            playsInline 
+            autoPlay 
+            ref={ref} 
+            className="w-full rounded-lg mb-4 shadow-md transition-transform duration-500 hover:scale-105" 
+        />
+    );
 };
 
 export default VideoRoom;

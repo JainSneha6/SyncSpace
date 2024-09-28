@@ -11,6 +11,7 @@
     "browserify-zlib": "^0.2.0",
     "buffer": "^6.0.3",
     "fabric": "^6.4.2",
+    "framer-motion": "^11.9.0",
     "https-browserify": "^1.0.0",
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",
