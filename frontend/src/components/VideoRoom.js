@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import SimplePeer from 'simple-peer'; // Make sure to import SimplePeer
+import SimplePeer from 'simple-peer';
 import { FaChalkboardTeacher } from 'react-icons/fa';
 
-const socket = io('https://paletteconnect.onrender.com'); // Update to your server URL
+const socket = io('http://localhost:5000'); // Adjust to your server URL
 
 const VideoRoom = () => {
     const { roomId } = useParams();
@@ -59,7 +59,7 @@ const VideoRoom = () => {
         });
 
         peer.on('signal', (signal) => {
-            socket.emit('signal', { roomId, signalData: signal, to: userToSignal });
+            socket.emit('signal', { signalData: signal, to: userToSignal });
         });
 
         peer.on('stream', (stream) => {
