@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { FaPaperPlane } from 'react-icons/fa';
+import { FaPaperPlane, FaSmile } from 'react-icons/fa';
+import EmojiPicker from 'emoji-picker-react';
 
 const Chat = ({ socketRef, roomId }) => {
-  const [messages, setMessages] = useState([]);  // State for chat messages
-  const [newMessage, setNewMessage] = useState('');  // State for new message input
+  const [messages, setMessages] = useState([]); // State for chat messages
+  const [newMessage, setNewMessage] = useState(''); // State for new message input
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // State to toggle emoji picker visibility
 
   useEffect(() => {
-    // Listen for chat history when joining a room
     if (socketRef.current) {
-
+      // Emit event to join the room
       socketRef.current.emit('joinRoom', roomId);
 
+      // Listen for chat history when joining
       socketRef.current.on('chatHistory', (history) => {
-        setMessages(history);  // Load chat history
+        setMessages(history); // Load chat history
       });
 
-      // Listen for incoming messages
+      // Listen for new incoming messages
       socketRef.current.on('receiveMessage', ({ message, id }) => {
         setMessages(prevMessages => [...prevMessages, { message, id }]);
       });
@@ -27,19 +29,20 @@ const Chat = ({ socketRef, roomId }) => {
     }
   }, [socketRef, roomId]);
 
+  // Function to handle sending a message
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (newMessage.trim() !== '') {
-      const messageData = { message: newMessage };
-
-      // Emit message to the server
+      // Emit the message to the server
       socketRef.current.emit('sendMessage', { roomId, message: newMessage });
-
-      // Clear the message input field
-      setNewMessage('');
+      setNewMessage(''); // Clear message input after sending
     }
   };
 
+  // Function to handle emoji selection
+  const handleEmojiClick = (emojiObject) => {
+    setNewMessage(prevMessage => prevMessage + emojiObject.emoji); // Append emoji to the message
+  };
 
   // Render the list of chat messages
   const renderMessages = () => {
@@ -58,7 +61,16 @@ const Chat = ({ socketRef, roomId }) => {
       <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">
         {renderMessages()}
       </div>
-      <form onSubmit={handleSendMessage} className="flex">
+
+      {/* Emoji Picker Toggle */}
+      {showEmojiPicker && (
+        <div className="absolute bottom-20 right-10">
+          <EmojiPicker onEmojiClick={handleEmojiClick} />
+        </div>
+      )}
+
+      <form onSubmit={handleSendMessage} className="flex items-center relative">
+        {/* Message Input */}
         <input
           type="text"
           value={newMessage}
@@ -66,7 +78,21 @@ const Chat = ({ socketRef, roomId }) => {
           placeholder="Type a message..."
           className="border border-gray-300 p-2 rounded-lg flex-grow"
         />
-        <button type="submit" className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center">
+
+        {/* Emoji Button */}
+        <button
+          type="button"
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className="text-gray-500 p-2 ml-2 hover:text-pink-500 transition duration-300"
+        >
+          <FaSmile size={24} />
+        </button>
+
+        {/* Send Button */}
+        <button
+          type="submit"
+          className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center"
+        >
           <FaPaperPlane />
         </button>
       </form>
