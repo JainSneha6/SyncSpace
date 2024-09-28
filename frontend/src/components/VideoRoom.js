@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import SimplePeer from 'simple-peer';
 import { FaChalkboardTeacher } from 'react-icons/fa';
 
-const socket = io('https://paletteconnect.onrender.com'); // Adjust to your server URL
+const socket = io('https://paletteconnect.onrender.com'); // Ensure your server URL is correct
 
 const VideoRoom = () => {
     const { roomId } = useParams();
@@ -16,16 +16,14 @@ const VideoRoom = () => {
 
     useEffect(() => {
         navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
-            userVideo.current.srcObject = stream;
+            userVideo.current.srcObject = stream; // Show local video
+
             socket.emit('joinRoom', roomId);
 
             socket.on('user-connected', (userId) => {
                 const peer = createPeer(userId, socket.id, stream);
-                peersRef.current.push({
-                    peerID: userId,
-                    peer,
-                });
-                setPeers((users) => [...users, peer]);
+                peersRef.current.push({ peerID: userId, peer });
+                setPeers((users) => [...users, peer]); // Update peers state
             });
 
             socket.on('signal', ({ signalData, from }) => {
@@ -38,8 +36,8 @@ const VideoRoom = () => {
             socket.on('user-disconnected', (userId) => {
                 const peerObj = peersRef.current.find((p) => p.peerID === userId);
                 if (peerObj) {
-                    peerObj.peer.destroy();
-                    setPeers((users) => users.filter((p) => p.peerID !== userId));
+                    peerObj.peer.destroy(); // Destroy peer on disconnect
+                    setPeers((users) => users.filter((p) => p.peerID !== userId)); // Update peers state
                 }
             });
         });
@@ -66,7 +64,7 @@ const VideoRoom = () => {
             const video = document.createElement('video');
             video.srcObject = stream;
             video.play();
-            videoGrid.current.append(video);
+            videoGrid.current.append(video); // Add peer's video to the video grid
         });
 
         return peer;
