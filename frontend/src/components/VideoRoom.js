@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaCamera, FaUserPlus } from 'react-icons/fa'; // Importing React icons
+import { FaCamera, FaUserPlus, FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
@@ -7,6 +7,8 @@ import { motion } from 'framer-motion';
 const VideoRoom = () => {
     const [roomId, setRoomId] = useState('');
     const [peers, setPeers] = useState([]);
+    const [isMicOn, setIsMicOn] = useState(true); // State to track mic status
+    const [isCameraOn, setIsCameraOn] = useState(true); // State to track camera status
     const socketRef = useRef();
     const userVideoRef = useRef();
     const peersRef = useRef([]);
@@ -64,6 +66,24 @@ const VideoRoom = () => {
             }
         };
     }, [roomId]);
+
+    // Toggle Mic function
+    const toggleMic = () => {
+        const audioTracks = streamRef.current.getAudioTracks();
+        audioTracks.forEach(track => {
+            track.enabled = !track.enabled;
+        });
+        setIsMicOn(prev => !prev);
+    };
+
+    // Toggle Camera function
+    const toggleCamera = () => {
+        const videoTracks = streamRef.current.getVideoTracks();
+        videoTracks.forEach(track => {
+            track.enabled = !track.enabled;
+        });
+        setIsCameraOn(prev => !prev);
+    };
 
     function createPeer(userToSignal, callerID, stream) {
         const peer = new Peer({
@@ -157,6 +177,16 @@ const VideoRoom = () => {
                                 <p className="text-gray-600">Waiting for a participant...</p>
                             </div>
                         )}
+                    </div>
+                    <div className="flex justify-center mt-4">
+                        <button onClick={toggleMic} className="bg-pink-500 text-white py-2 px-4 rounded-lg mr-4 transition duration-300 hover:bg-pink-600 flex items-center">
+                            {isMicOn ? <FaMicrophone className="mr-2" /> : <FaMicrophoneSlash className="mr-2" />}
+                            {isMicOn ? "Mute" : "Unmute"}
+                        </button>
+                        <button onClick={toggleCamera} className="bg-pink-500 text-white py-2 px-4 rounded-lg transition duration-300 hover:bg-pink-600 flex items-center">
+                            {isCameraOn ? <FaCamera className="mr-2" /> : <FaCamera className="mr-2 opacity-50" />}
+                            {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
+                        </button>
                     </div>
                 </motion.div>
             )}
