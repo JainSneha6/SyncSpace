@@ -56,6 +56,10 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('clearBoard');
   });
 
+  socket.on('signal', ({ signalData, to }) => {
+    socket.to(to).emit('signal', { signalData, from: socket.id });
+  });
+
   socket.on('disconnect', () => {
     console.log('A user disconnected');
   });
