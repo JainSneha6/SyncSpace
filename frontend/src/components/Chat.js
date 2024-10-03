@@ -79,7 +79,7 @@ const Chat = ({ socketRef, roomId }) => {
   };
 
   return (
-    <div className="mt-4 relative">
+    <div className="relative h-2/3">
       <h3 className="text-lg font-semibold mb-2">Chat</h3>
       <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">
         {renderMessages()}
@@ -131,12 +131,12 @@ const Chat = ({ socketRef, roomId }) => {
         />
 
         {/* GIF Button with new icon */}
-        <button type="button" className="bg-yellow-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-yellow-600 flex items-center" onClick={() => setShowGifPicker(!showGifPicker)}>
-          <FaImage /> {/* Changed icon to FaImage */}
+        <button type="button" className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center" onClick={() => setShowGifPicker(!showGifPicker)}>
+          GIF
         </button>
 
         {/* Emoji Button */}
-        <button type="button" className="text-gray-500 p-2 ml-2 hover:text-pink-500 transition duration-300" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+        <button type="button" className="text-white p-2 ml-2 bg-pink-500 hover:bg-pink-600  rounded-lg transition duration-300" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
           <FaSmile size={24} />
         </button>
 
