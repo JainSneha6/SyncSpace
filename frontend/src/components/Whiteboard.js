@@ -27,9 +27,7 @@ const Whiteboard = () => {
     socket.emit('joinRoom', roomId);
 
     socket.on('loadDrawing', (drawings) => {
-      drawings.forEach(({ offsetX, offsetY, prevX, prevY, color, brushWidth }) => {
-        drawLine(ctx, prevX, prevY, offsetX, offsetY, color, brushWidth);
-      });
+      drawings.forEach(drawShapeFromData(ctx));
     });
 
     socket.on('drawing', ({ offsetX, offsetY, prevX, prevY, color, brushWidth }) => {
@@ -43,7 +41,7 @@ const Whiteboard = () => {
 
     socket.on('shapeDrawn', (shape) => {
       setShapes((prevShapes) => [...prevShapes, shape]);
-      addShapeToCanvas(shape); // Draw the shape on the canvas
+      addShapeToCanvas(ctx, shape); // Draw the shape on the canvas
     });
 
     return () => {
@@ -122,8 +120,7 @@ const Whiteboard = () => {
     ctx.stroke();
   };
 
-  const addShapeToCanvas = (shape) => {
-    const ctx = canvasRef.current.getContext('2d');
+  const addShapeToCanvas = (ctx, shape) => {
     drawShape(ctx, shape);
   };
 
@@ -134,9 +131,17 @@ const Whiteboard = () => {
     } else {
       const ctx = canvasRef.current.getContext('2d');
       clearCanvas(ctx); // Clear canvas
-      shapes.forEach((shape) => addShapeToCanvas(shape)); // Redraw existing shapes
-      const newShape = { type: shapeType, startX: startCoords.x, startY: startCoords.y, endX: offsetX, endY: offsetY, color, width: brushWidth };
-      addShapeToCanvas(newShape);
+      redrawShapes(ctx); // Redraw existing shapes
+      const newShape = {
+        type: shapeType,
+        startX: startCoords.x,
+        startY: startCoords.y,
+        endX: offsetX,
+        endY: offsetY,
+        color,
+        width: brushWidth,
+      };
+      addShapeToCanvas(ctx, newShape);
       setShapes((prevShapes) => [...prevShapes, newShape]);
       socket.emit('shapeDrawn', { roomId, shape: newShape });
       setStartCoords(null); // Reset start coordinates
@@ -170,6 +175,15 @@ const Whiteboard = () => {
     } else {
       handleShapeDrawing(event);
     }
+  };
+
+  const redrawShapes = (ctx) => {
+    shapes.forEach((shape) => addShapeToCanvas(ctx, shape));
+  };
+
+  const drawShapeFromData = (ctx) => (data) => {
+    const { type, startX, startY, endX, endY, color, width } = data;
+    addShapeToCanvas(ctx, { type, startX, startY, endX, endY, color, width });
   };
 
   return (
