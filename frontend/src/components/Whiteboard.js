@@ -38,6 +38,7 @@ const Whiteboard = () => {
 
     socket.on('clearBoard', () => {
       clearCanvas(ctx);
+      setShapes([]); // Clear shapes state when board is cleared
     });
 
     socket.on('shapeDrawn', (shape) => {
@@ -84,8 +85,9 @@ const Whiteboard = () => {
 
   const clearBoard = () => {
     const ctx = canvasRef.current.getContext('2d');
-    clearCanvas(ctx);
-    socket.emit('clearBoard', roomId);
+    clearCanvas(ctx); // Clear the local canvas
+    setShapes([]); // Clear the shapes state
+    socket.emit('clearBoard', roomId); // Emit event to the server
   };
 
   const toggleEraser = () => {
@@ -195,52 +197,39 @@ const Whiteboard = () => {
             </div>
           )}
         </div>
-        {/* Brush width toggle */}
-        <div className="flex items-center space-x-2">
-          <FaPaintBrush className="text-2xl text-blue-500 cursor-pointer" onClick={toggleBrushWidth} />
+        {/* Brush size */}
+        <div className="flex items-center">
+          <FaPaintBrush className="text-3xl text-blue-500 cursor-pointer hover:scale-110 transition" onClick={toggleBrushWidth} />
           {showBrushWidth && (
             <input
               type="range"
               min="1"
-              max="50"
+              max="20"
               value={brushWidth}
               onChange={(e) => setBrushWidth(e.target.value)}
-              className="w-24"
+              className="ml-2"
             />
           )}
         </div>
-        {/* Eraser width slider */}
-        <div className="flex items-center space-x-2">
-          <FaEraser
-            className={`text-2xl ${isErasing ? 'text-yellow-500' : 'text-gray-500'} cursor-pointer`}
-            onClick={toggleEraser}
-          />
-          {isErasing && (
-            <input
-              type="range"
-              min="1"
-              max="50"
-              value={eraserWidth}
-              onChange={(e) => setEraserWidth(e.target.value)}
-              className="w-24"
-            />
-          )}
+        {/* Eraser */}
+        <div className="flex items-center">
+          <FaEraser className="text-3xl text-gray-500 cursor-pointer hover:scale-110 transition" onClick={toggleEraser} />
         </div>
-        {/* Clear board button */}
+        {/* Clear Board */}
         <FaTrash
-          className="text-2xl text-red-500 cursor-pointer hover:scale-110 transition"
+          className="text-3xl text-red-500 cursor-pointer hover:scale-110 transition"
           onClick={clearBoard}
         />
       </div>
-
       <canvas
         ref={canvasRef}
+        className="border border-gray-400"
+        width={800}
+        height={600}
         onMouseDown={startDrawing}
         onMouseUp={finishDrawing}
         onMouseMove={draw}
-        width={800}
-        height={600}
-        className="border border-gray-300 rounded-lg shadow-lg bg-white"
+        onMouseLeave={finishDrawing}
       />
     </div>
   );
