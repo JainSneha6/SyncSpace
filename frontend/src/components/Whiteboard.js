@@ -26,10 +26,11 @@ const Whiteboard = () => {
 
     socket.emit('joinRoom', roomId);
 
-    socket.on('loadDrawing', (drawings) => {
-      drawings.forEach((drawing) => {
-        drawShapeFromData(ctx)(drawing);
-        setShapes((prevShapes) => [...prevShapes, drawing]); // Add to shapes state
+    // Load existing shapes when the user joins
+    socket.on('loadShapes', (shapes) => {
+      shapes.forEach((shape) => {
+        addShapeToCanvas(ctx, shape);
+        setShapes((prevShapes) => [...prevShapes, shape]); // Add to shapes state
       });
     });
 
@@ -48,7 +49,7 @@ const Whiteboard = () => {
     });
 
     return () => {
-      socket.off('loadDrawing');
+      socket.off('loadShapes');
       socket.off('drawing');
       socket.off('clearBoard');
       socket.off('shapeDrawn');
@@ -178,10 +179,6 @@ const Whiteboard = () => {
     addShapeToCanvas(ctx, { type, startX, startY, endX, endY, color, width });
   };
 
-  const redrawShapes = (ctx) => {
-    shapes.forEach((shape) => addShapeToCanvas(ctx, shape));
-  };
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4 relative">
       <div className="absolute left-4 top-16 p-4 bg-white shadow-lg rounded-lg space-y-4">
@@ -221,24 +218,21 @@ const Whiteboard = () => {
           )}
         </div>
         {/* Eraser */}
-        <div className="flex items-center">
-          <FaEraser className="text-3xl text-gray-500 cursor-pointer hover:scale-110 transition" onClick={() => setIsErasing(!isErasing)} />
-        </div>
-        {/* Clear Board */}
-        <FaTrash
-          className="text-3xl text-red-500 cursor-pointer hover:scale-110 transition"
-          onClick={clearBoard}
+        <FaEraser
+          className={`text-3xl cursor-pointer ${isErasing ? 'text-red-500' : 'text-gray-500'} hover:scale-110 transition`}
+          onClick={() => setIsErasing(!isErasing)}
         />
+        {/* Clear button */}
+        <FaTrash className="text-3xl text-red-500 cursor-pointer hover:scale-110 transition" onClick={clearBoard} />
       </div>
       <canvas
         ref={canvasRef}
-        className="border border-gray-400"
         width={800}
         height={600}
         onMouseDown={startDrawing}
         onMouseUp={finishDrawing}
         onMouseMove={draw}
-        onMouseLeave={finishDrawing}
+        className="border border-gray-300"
       />
     </div>
   );
