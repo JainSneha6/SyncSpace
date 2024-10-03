@@ -90,8 +90,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('clearBoard', (roomId) => {
-    roomDrawings[roomId] = [];
-    socket.to(roomId).emit('clearBoard');
+    roomDrawings[roomId] = []; // Clear drawings on the server
+    socket.to(roomId).emit('clearBoard'); // Notify all users in the room to clear their boards
   });
 
   socket.on('shapeDrawn', ({ roomId, shape }) => {
