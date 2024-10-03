@@ -14,11 +14,11 @@ const Whiteboard = () => {
   const [brushWidth, setBrushWidth] = useState(2);
   const [eraserWidth, setEraserWidth] = useState(10);
   const [isErasing, setIsErasing] = useState(false);
-  const [showBrushWidth, setShowBrushWidth] = useState(false);
-  const { roomId } = useParams();
-  const [shapes, setShapes] = useState([]); // Store shapes
+  const [shapes, setShapes] = useState([]); // Store all shapes
   const [shapeType, setShapeType] = useState('line'); // Default shape type
   const [startCoords, setStartCoords] = useState(null); // For shape drawing
+  const [showBrushWidth, setShowBrushWidth] = useState(false); // State for brush width visibility
+  const { roomId } = useParams();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -27,7 +27,10 @@ const Whiteboard = () => {
     socket.emit('joinRoom', roomId);
 
     socket.on('loadDrawing', (drawings) => {
-      drawings.forEach(drawShapeFromData(ctx));
+      drawings.forEach((drawing) => {
+        drawShapeFromData(ctx)(drawing);
+        setShapes((prevShapes) => [...prevShapes, drawing]); // Add to shapes state
+      });
     });
 
     socket.on('drawing', ({ offsetX, offsetY, prevX, prevY, color, brushWidth }) => {
@@ -40,8 +43,8 @@ const Whiteboard = () => {
     });
 
     socket.on('shapeDrawn', (shape) => {
-      setShapes((prevShapes) => [...prevShapes, shape]);
-      addShapeToCanvas(ctx, shape); // Draw the shape on the canvas
+      addShapeToCanvas(ctx, shape);
+      setShapes((prevShapes) => [...prevShapes, shape]); // Add to shapes state
     });
 
     return () => {
@@ -59,12 +62,14 @@ const Whiteboard = () => {
     ctx.moveTo(offsetX, offsetY);
     setIsDrawing(true);
     ctx.prevPos = { offsetX, offsetY };
+    setStartCoords({ x: offsetX, y: offsetY }); // Set start coordinates for shape
   };
 
   const finishDrawing = () => {
     setIsDrawing(false);
     const ctx = canvasRef.current.getContext('2d');
     ctx.prevPos = null;
+    setStartCoords(null); // Reset start coordinates
   };
 
   const drawLine = (ctx, x1, y1, x2, y2, color, width) => {
@@ -86,14 +91,6 @@ const Whiteboard = () => {
     clearCanvas(ctx); // Clear the local canvas
     setShapes([]); // Clear the shapes state
     socket.emit('clearBoard', roomId); // Emit event to the server
-  };
-
-  const toggleEraser = () => {
-    setIsErasing(!isErasing);
-  };
-
-  const toggleBrushWidth = () => {
-    setShowBrushWidth(!showBrushWidth);
   };
 
   const drawShape = (ctx, shape) => {
@@ -130,8 +127,6 @@ const Whiteboard = () => {
       setStartCoords({ x: offsetX, y: offsetY });
     } else {
       const ctx = canvasRef.current.getContext('2d');
-      clearCanvas(ctx); // Clear canvas
-      redrawShapes(ctx); // Redraw existing shapes
       const newShape = {
         type: shapeType,
         startX: startCoords.x,
@@ -142,17 +137,18 @@ const Whiteboard = () => {
         width: brushWidth,
       };
       addShapeToCanvas(ctx, newShape);
-      setShapes((prevShapes) => [...prevShapes, newShape]);
+      setShapes((prevShapes) => [...prevShapes, newShape]); // Update shapes state
       socket.emit('shapeDrawn', { roomId, shape: newShape });
       setStartCoords(null); // Reset start coordinates
     }
   };
 
   const draw = (event) => {
+    const ctx = canvasRef.current.getContext('2d');
+
     if (!isDrawing) return;
 
     const { offsetX, offsetY } = event.nativeEvent;
-    const ctx = canvasRef.current.getContext('2d');
     const prevPos = ctx.prevPos;
 
     if (shapeType === 'line') {
@@ -177,13 +173,13 @@ const Whiteboard = () => {
     }
   };
 
-  const redrawShapes = (ctx) => {
-    shapes.forEach((shape) => addShapeToCanvas(ctx, shape));
-  };
-
   const drawShapeFromData = (ctx) => (data) => {
     const { type, startX, startY, endX, endY, color, width } = data;
     addShapeToCanvas(ctx, { type, startX, startY, endX, endY, color, width });
+  };
+
+  const redrawShapes = (ctx) => {
+    shapes.forEach((shape) => addShapeToCanvas(ctx, shape));
   };
 
   return (
@@ -213,7 +209,7 @@ const Whiteboard = () => {
         </div>
         {/* Brush size */}
         <div className="flex items-center">
-          <FaPaintBrush className="text-3xl text-blue-500 cursor-pointer hover:scale-110 transition" onClick={toggleBrushWidth} />
+          <FaPaintBrush className="text-3xl text-blue-500 cursor-pointer hover:scale-110 transition" onClick={() => setShowBrushWidth(!showBrushWidth)} />
           {showBrushWidth && (
             <input
               type="range"
@@ -221,13 +217,12 @@ const Whiteboard = () => {
               max="20"
               value={brushWidth}
               onChange={(e) => setBrushWidth(e.target.value)}
-              className="ml-2"
             />
           )}
         </div>
         {/* Eraser */}
         <div className="flex items-center">
-          <FaEraser className="text-3xl text-gray-500 cursor-pointer hover:scale-110 transition" onClick={toggleEraser} />
+          <FaEraser className="text-3xl text-gray-500 cursor-pointer hover:scale-110 transition" onClick={() => setIsErasing(!isErasing)} />
         </div>
         {/* Clear Board */}
         <FaTrash
