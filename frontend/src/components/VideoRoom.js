@@ -200,7 +200,7 @@ const VideoRoom = () => {
                             {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                         </button>
                     </div>
-                    <button onClick={goToWhiteboard} className="mt-6 bg-blue-500 text-white py-3 px-6 rounded-full transition duration-300 hover:bg-blue-600 shadow-lg transform hover:scale-105 flex items-center">
+                    <button onClick={goToWhiteboard} className="mt-6 bg-pink-500 text-white py-3 px-6 rounded-full transition duration-300 hover:bg-pink-600 shadow-lg transform hover:scale-105 flex items-center">
                         <FaPalette className="mr-2" />
                         Go to Whiteboard
                     </button>
