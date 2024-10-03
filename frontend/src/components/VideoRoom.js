@@ -131,47 +131,48 @@ const VideoRoom = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-gray-200 to-gray-300 p-4">
-            <h1 className="text-5xl font-bold mb-8 text-pink-600 drop-shadow-lg">PaletteConnect</h1>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-pink-500 via-gray-200 to-pink-200 p-6">
+            <h1 className="text-5xl font-bold mb-8 text-white drop-shadow-xl">PaletteConnect</h1>
             {!roomId ? (
                 <motion.div 
-                    className="bg-white p-8 rounded-lg shadow-lg transform transition-transform duration-300 hover:scale-105 w-full max-w-md"
+                    className="bg-white p-8 rounded-lg shadow-xl transform transition-transform duration-300 hover:scale-105 w-full max-w-md"
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
                 >
                     <div className="flex flex-col items-center">
                         <button 
-                            className="bg-pink-500 text-white py-2 px-6 rounded-lg mb-4 transition duration-300 hover:bg-pink-600 transform hover:scale-105 flex items-center"
+                            className="bg-pink-600 text-white py-3 px-8 rounded-full mb-4 transition duration-300 hover:bg-pink-700 shadow-lg transform hover:scale-105 flex items-center text-lg"
                             onClick={handleRoomCreate}>
                             <FaCamera className="mr-2" />
                             Create Room
                         </button>
-                        <form onSubmit={handleRoomJoin} className="w-full">
+                        <form onSubmit={handleRoomJoin} className="w-full flex flex-col items-center">
                             <input
                                 type="text"
                                 value={roomId}
                                 onChange={(e) => setRoomId(e.target.value)}
                                 placeholder="Enter Room ID"
-                                className="border-2 border-gray-300 p-3 rounded-lg mb-4 w-full transition duration-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
+                                className="border-2 border-gray-300 p-3 rounded-lg mb-4 w-full transition duration-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-300"
                             />
-                            <button type="submit" className="bg-pink-500 text-white py-2 px-6 rounded-lg transition duration-300 hover:bg-pink-600 transform hover:scale-105 flex items-center justify-center">
+                            <button type="submit" className="bg-pink-600 text-white py-3 px-8 rounded-full transition duration-300 hover:bg-pink-700 shadow-lg transform hover:scale-105 flex items-center text-lg">
                                 <FaUserPlus className="mr-2" />
                                 Join Room
                             </button>
                         </form>
+
                     </div>
                 </motion.div>
             ) : (
                 <motion.div 
-                    className="bg-white p-4 rounded-lg shadow-lg transform transition-transform duration-300 w-full"
+                    className="bg-white p-6 rounded-lg shadow-xl transform transition-transform duration-300 w-full max-w-4xl"
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
                 >
-                    <h2 className="text-2xl mb-4 text-gray-700 text-center">Room ID: {roomId}</h2>
+                    <h2 className="text-2xl mb-4 text-gray-800 text-center">Room ID: {roomId}</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="relative">
-                            <video playsInline muted ref={userVideoRef} autoPlay className="rounded-lg shadow-md w-full" />
-                            <div className="absolute top-0 left-0 bg-pink-500 text-white text-sm font-semibold p-1 rounded-bl-lg">You</div>
+                            <video playsInline muted ref={userVideoRef} autoPlay className="rounded-lg shadow-lg w-full" />
+                            <div className="absolute top-0 left-0 bg-pink-600 text-white text-sm font-semibold p-1 rounded-bl-lg">You</div>
                         </div>
                         {peers.length > 0 ? (
                             peers.map((peer, index) => (
@@ -179,21 +180,21 @@ const VideoRoom = () => {
                             ))
                         ) : (
                             <div className="flex items-center justify-center h-48 bg-gray-200 rounded-lg">
-                                <p className="text-gray-600">Waiting for a participant...</p>
+                                <p className="text-gray-500">Waiting for a participant...</p>
                             </div>
                         )}
                     </div>
-                    <div className="flex justify-center mt-4">
-                        <button onClick={toggleMic} className="bg-pink-500 text-white py-2 px-4 rounded-lg mr-4 transition duration-300 hover:bg-pink-600 flex items-center">
+                    <div className="flex justify-center mt-6">
+                        <button onClick={toggleMic} className="bg-pink-600 text-white py-3 px-6 rounded-full mr-4 transition duration-300 hover:bg-pink-700 shadow-lg transform hover:scale-105 flex items-center">
                             {isMicOn ? <FaMicrophone className="mr-2" /> : <FaMicrophoneSlash className="mr-2" />}
                             {isMicOn ? "Mute" : "Unmute"}
                         </button>
-                        <button onClick={toggleCamera} className="bg-pink-500 text-white py-2 px-4 rounded-lg transition duration-300 hover:bg-pink-600 flex items-center">
+                        <button onClick={toggleCamera} className="bg-pink-600 text-white py-3 px-6 rounded-full transition duration-300 hover:bg-pink-700 shadow-lg transform hover:scale-105 flex items-center">
                             {isCameraOn ? <FaCamera className="mr-2" /> : <FaCamera className="mr-2 opacity-50" />}
                             {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                         </button>
                     </div>
-                    <button onClick={goToWhiteboard} className="mt-4 bg-blue-500 text-white py-2 px-4 rounded-lg transition duration-300 hover:bg-blue-600 flex items-center">
+                    <button onClick={goToWhiteboard} className="mt-6 bg-blue-500 text-white py-3 px-6 rounded-full transition duration-300 hover:bg-blue-600 shadow-lg transform hover:scale-105 flex items-center">
                         <FaPalette className="mr-2" />
                         Go to Whiteboard
                     </button>
@@ -223,7 +224,7 @@ const Video = ({ peer }) => {
                 playsInline 
                 autoPlay 
                 ref={ref} 
-                className="rounded-lg shadow-md w-full" 
+                className="rounded-lg shadow-lg w-full" 
             />
             <div className="absolute top-0 left-0 bg-gray-700 text-white text-sm font-semibold p-1 rounded-bl-lg">Participant</div>
         </div>
