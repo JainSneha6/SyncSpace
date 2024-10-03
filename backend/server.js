@@ -18,6 +18,7 @@ const PORT = 5000;
 
 const rooms = new Map();
 const roomDrawings = {}; // Store drawings for each room
+const roomShapes = {}; // Store shapes for each room
 const roomMessages = {}; // Store chat messages for each room
 
 io.on('connection', (socket) => {
@@ -69,6 +70,11 @@ io.on('connection', (socket) => {
     if (roomDrawings[roomId]) {
       socket.emit('loadDrawing', roomDrawings[roomId]);
     }
+
+    // Load existing shapes for the room
+    if (roomShapes[roomId]) {
+      socket.emit('loadShapes', roomShapes[roomId]);
+    }
   });
 
   socket.on('drawing', ({ roomId, offsetX, offsetY, prevX, prevY, color, brushWidth }) => {
@@ -86,6 +92,18 @@ io.on('connection', (socket) => {
   socket.on('clearBoard', (roomId) => {
     roomDrawings[roomId] = [];
     socket.to(roomId).emit('clearBoard');
+  });
+
+  socket.on('shapeDrawn', ({ roomId, shape }) => {
+    if (!roomShapes[roomId]) {
+      roomShapes[roomId] = [];
+    }
+
+    // Store the shape data
+    roomShapes[roomId].push(shape);
+
+    // Broadcast the shape to others in the room
+    socket.to(roomId).emit('shapeDrawn', shape);
   });
 
   // Screen sharing events
