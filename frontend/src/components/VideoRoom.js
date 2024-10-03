@@ -159,30 +159,36 @@ const VideoRoom = () => {
                                 Join Room
                             </button>
                         </form>
-
                     </div>
                 </motion.div>
             ) : (
                 <motion.div 
-                    className="bg-white p-6 rounded-lg shadow-xl transform transition-transform duration-300 w-full max-w-4xl"
+                    className="bg-white p-6 rounded-lg shadow-xl transform transition-transform duration-300 w-full max-w-6xl"
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
                 >
                     <h2 className="text-2xl mb-4 text-gray-800 text-center">Room ID: {roomId}</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="relative">
-                            <video playsInline muted ref={userVideoRef} autoPlay className="rounded-lg shadow-lg w-full" />
-                            <div className="absolute top-0 left-0 bg-pink-600 text-white text-sm font-semibold p-1 rounded-bl-lg">You</div>
-                        </div>
-                        {peers.length > 0 ? (
-                            peers.map((peer, index) => (
-                                <Video key={index} peer={peer} />
-                            ))
-                        ) : (
-                            <div className="flex items-center justify-center h-48 bg-gray-200 rounded-lg">
-                                <p className="text-gray-500">Waiting for a participant...</p>
+                    <div className="flex">
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="relative">
+                                <video playsInline muted ref={userVideoRef} autoPlay className="rounded-lg shadow-lg w-full" />
+                                <div className="absolute top-0 left-0 bg-pink-600 text-white text-sm font-semibold p-1 rounded-bl-lg">You</div>
                             </div>
-                        )}
+                            {peers.length > 0 ? (
+                                peers.map((peer, index) => (
+                                    <Video key={index} peer={peer} />
+                                ))
+                            ) : (
+                                <div className="flex items-center justify-center h-48 bg-gray-200 rounded-lg">
+                                    <p className="text-gray-500">Waiting for a participant...</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Chat section on the right */}
+                        <div className="w-1/3 ml-6"> {/* Increased the width to 1/3 of the screen */}
+                            <Chat socketRef={socketRef} roomId={roomId} />
+                        </div>
                     </div>
                     <div className="flex justify-center mt-6">
                         <button onClick={toggleMic} className="bg-pink-600 text-white py-3 px-6 rounded-full mr-4 transition duration-300 hover:bg-pink-700 shadow-lg transform hover:scale-105 flex items-center">
@@ -198,9 +204,6 @@ const VideoRoom = () => {
                         <FaPalette className="mr-2" />
                         Go to Whiteboard
                     </button>
-
-                    {/* Include Chat component */}
-                    <Chat socketRef={socketRef} roomId={roomId} />
                 </motion.div>
             )}
         </div>
