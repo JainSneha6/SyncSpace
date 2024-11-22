@@ -87,9 +87,12 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('clearBoard');
   });
 
+  socket.on('addText', ({ roomId, text, x, y, font, color }) => {
+    if (!roomDrawings[roomId]) roomDrawings[roomId] = [];
+    roomDrawings[roomId].push({ type: 'text', text, x, y, font, color });
 
-
-
+    io.to(roomId).emit('addText', { text, x, y, font, color });
+  });
 
   socket.on('screenSignal', (payload) => {
     socket.to(payload.roomId).emit('screenSignal', {
