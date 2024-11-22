@@ -36,12 +36,16 @@ const Whiteboard = () => {
       ctx.fillStyle = color;
       ctx.fillText(text, x, y);
     });
+    socket.on('changeTextColor', (color) => {
+      setColor(color); // Update the text color when the server broadcasts the new color
+    });
     socket.on('clearBoard', () => clearCanvas(ctx));
     return () => {
       socket.off('loadDrawing');
       socket.off('drawing');
       socket.off('addText');
       socket.off('clearBoard');
+      socket.off('changeTextColor');
     };
   }, [roomId]);
 
@@ -90,7 +94,7 @@ const Whiteboard = () => {
     const { offsetX, offsetY } = event.nativeEvent;
 
     ctx.font = `${textSize}px ${fontStyle}`;
-    ctx.fillStyle = color;
+    ctx.fillStyle = color; // Use the updated color
     ctx.fillText(currentText, offsetX, offsetY);
 
     // Save the text's details
@@ -99,14 +103,16 @@ const Whiteboard = () => {
       x: offsetX,
       y: offsetY,
       font: `${textSize}px ${fontStyle}`,
+      color: color, // Include color when saving text item
       width: ctx.measureText(currentText).width,
       height: textSize,
     };
 
     setTextItems((prev) => [...prev, newText]);
     setCurrentText('');
-    socket.emit('addText', { roomId, ...newText });
+    socket.emit('addText', { roomId, ...newText }); // Emit text details to the server
   };
+
 
 
   const draw = (event) => {
@@ -132,6 +138,11 @@ const Whiteboard = () => {
         brushWidth: width,
       });
     }
+  };
+
+  const changeTextColor = (newColor) => {
+    setColor(newColor); // Update the local color state for drawing
+    socket.emit('changeTextColor', { roomId, color: newColor }); // Emit the text color to the server
   };
 
   return (

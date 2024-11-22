@@ -46,6 +46,12 @@ io.on('connection', (socket) => {
     io.to(payload.userToSignal).emit('user joined', { signal: payload.signal, callerID: payload.callerID });
   });
 
+  socket.on('changeTextColor', ({ roomId, color }) => {
+    // Emit the new text color to all clients in the room
+    socket.to(roomId).emit('changeTextColor', color);
+  });
+
+
   socket.on('returning signal', (payload) => {
     io.to(payload.callerID).emit('receiving returned signal', { signal: payload.signal, id: socket.id });
   });
