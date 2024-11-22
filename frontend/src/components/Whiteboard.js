@@ -44,14 +44,6 @@ const Canvas = ({ roomId }) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
 
-    socket.on('addText', (textData) => {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      ctx.font = textData.font;
-      ctx.fillStyle = textData.color;
-      ctx.fillText(textData.text, textData.x, textData.y);
-    });
-
     return () => {
       socket.off('loadDrawing');
       socket.off('drawing');
