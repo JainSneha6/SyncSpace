@@ -18,7 +18,7 @@ const PORT = 5000;
 
 const rooms = new Map();
 const roomDrawings = {}; // Store drawings for each room
-const roomShapes = {}; // Store shapes for each room
+
 const roomMessages = {}; // Store chat messages for each room
 
 io.on('connection', (socket) => {
@@ -72,9 +72,7 @@ io.on('connection', (socket) => {
     }
 
     // Load existing shapes for the room
-    if (roomShapes[roomId]) {
-      socket.emit('loadShapes', roomShapes[roomId]);
-    }
+
   });
 
   socket.on('drawing', ({ roomId, offsetX, offsetY, prevX, prevY, color, brushWidth }) => {
@@ -94,35 +92,27 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('clearBoard'); // Notify all users in the room to clear their boards
   });
 
-  socket.on('shapeDrawn', ({ roomId, shape }) => {
-    if (!roomShapes[roomId]) {
-      roomShapes[roomId] = [];
-    }
-
-    // Store the shape data
-    roomShapes[roomId].push(shape);
-
-    // Broadcast the shape to others in the room
-    socket.to(roomId).emit('shapeDrawn', shape);
-  });
 
   // Screen sharing events
-  socket.on('startScreenShare', (roomId) => {
-    socket.join(roomId);
-    console.log(`User ${socket.id} started screen sharing in room: ${roomId}`);
-    socket.to(roomId).emit('userStartedScreenShare', socket.id);
-  });
 
-  socket.on('stopScreenShare', (roomId) => {
-    console.log(`User ${socket.id} stopped screen sharing in room: ${roomId}`);
-    socket.to(roomId).emit('userStoppedScreenShare', socket.id);
-  });
 
   socket.on('screenSignal', (payload) => {
     socket.to(payload.roomId).emit('screenSignal', {
       signal: payload.signal,
       callerID: socket.id,
     });
+  });
+
+  socket.on('addText', ({ roomId, text, x, y, color, fontSize }) => {
+    if (!roomDrawings[roomId]) {
+      roomDrawings[roomId] = [];
+    }
+
+    // Save text data for the room
+    roomDrawings[roomId].push({ type: 'text', text, x, y, color, fontSize });
+
+    // Broadcast the text addition to others in the room
+    socket.to(roomId).emit('addText', { text, x, y, color, fontSize });
   });
 
   socket.on('disconnect', () => {
