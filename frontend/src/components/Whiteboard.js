@@ -1,22 +1,27 @@
 import React, { useRef, useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 
 // Set the server URL (make sure this matches your backend)
 const socket = io("https://paletteconnect.onrender.com");
 
-const Canvas = ({ roomId }) => {
+const Canvas = () => {
   const canvasRef = useRef(null);
+  const roomId = useParams();
   const [isDrawing, setIsDrawing] = useState(false);
   const [tool, setTool] = useState("brush");
   const [startPoint, setStartPoint] = useState(null);
   const [sides, setSides] = useState(5);
   const [color, setColor] = useState("#000000");
 
-  // Handle joining the room
   useEffect(() => {
-    socket.emit('joinRoom', roomId);
+    if (roomId) {
+      socket.emit("joinRoom", roomId);
+    } else {
+      console.error("Room ID is not available.");
+    }
 
-    socket.on('loadDrawing', (drawings) => {
+    socket.on("loadDrawing", (drawings) => {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
       drawings.forEach((drawing) => {
@@ -28,7 +33,7 @@ const Canvas = ({ roomId }) => {
       });
     });
 
-    socket.on('drawing', (drawingData) => {
+    socket.on("drawing", (drawingData) => {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
       ctx.strokeStyle = drawingData.color;
@@ -38,17 +43,16 @@ const Canvas = ({ roomId }) => {
       ctx.stroke();
     });
 
-    socket.on('clearBoard', () => {
+    socket.on("clearBoard", () => {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
 
     return () => {
-      socket.off('loadDrawing');
-      socket.off('drawing');
-      socket.off('clearBoard');
-      socket.off('addText');
+      socket.off("loadDrawing");
+      socket.off("drawing");
+      socket.off("clearBoard");
     };
   }, [roomId]);
 
@@ -82,15 +86,17 @@ const Canvas = ({ roomId }) => {
     ctx.stroke();
 
     // Emit drawing to other users
-    socket.emit('drawing', {
-      roomId,
-      offsetX: x,
-      offsetY: y,
-      prevX: startPoint.x,
-      prevY: startPoint.y,
-      color,
-      brushWidth: 5, // Customize this as needed
-    });
+    if (roomId) {
+      socket.emit("drawing", {
+        roomId,
+        offsetX: x,
+        offsetY: y,
+        prevX: startPoint.x,
+        prevY: startPoint.y,
+        color,
+        brushWidth: 5,
+      });
+    }
   };
 
   const handleMouseUp = (e) => {
@@ -154,17 +160,18 @@ const Canvas = ({ roomId }) => {
         break;
     }
 
-    // Emit the shape drawing to other users
-    socket.emit('drawing', {
-      roomId,
-      offsetX: x,
-      offsetY: y,
-      prevX: startPoint.x,
-      prevY: startPoint.y,
-      color,
-      brushWidth: 5,
-    });
-
+    if (roomId) {
+      socket.emit("drawing", {
+        roomId,
+        offsetX: x,
+        offsetY: y,
+        prevX: startPoint.x,
+        prevY: startPoint.y,
+        color,
+        brushWidth: 5,
+      });
+    }
+    
     setIsDrawing(false);
     setStartPoint(null);
   };
