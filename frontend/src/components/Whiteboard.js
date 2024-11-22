@@ -24,6 +24,10 @@ const Canvas = () => {
     socket.on("loadDrawing", (drawings) => {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
+
+      // Clear canvas before loading new drawings
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       drawings.forEach((drawing) => {
         ctx.strokeStyle = drawing.color;
         ctx.beginPath();
@@ -171,7 +175,7 @@ const Canvas = () => {
         brushWidth: 5,
       });
     }
-    
+
     setIsDrawing(false);
     setStartPoint(null);
   };
@@ -241,19 +245,9 @@ const Canvas = () => {
         <button onClick={() => setTool("polygon")}>Polygon</button>
         <button onClick={() => setTool("star")}>Star</button>
         <button onClick={() => setTool("arrow")}>Arrow</button>
-        <button onClick={clearCanvas}>Clear</button>
-        <input
-          type="color"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-        />
-        <input
-          type="number"
-          value={sides}
-          onChange={(e) => setSides(parseInt(e.target.value))}
-          placeholder="Sides (Polygon/Star)"
-        />
+        <button onClick={() => clearCanvas()}>Clear</button>
       </div>
+
       <canvas
         ref={canvasRef}
         width={800}
