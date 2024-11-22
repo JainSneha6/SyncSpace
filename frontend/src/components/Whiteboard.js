@@ -68,7 +68,7 @@ const Whiteboard = () => {
   const clearBoard = () => {
     const ctx = canvasRef.current.getContext('2d');
     clearCanvas(ctx); // Clear the local canvas
-    setShapes([]); // Clear the shapes state
+
     socket.emit('clearBoard', roomId); // Emit event to the server
   };
 
