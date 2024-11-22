@@ -78,14 +78,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('drawing', ({ roomId, offsetX, offsetY, prevX, prevY, color, brushWidth }) => {
-    if (!roomDrawings[roomId]) {
-      roomDrawings[roomId] = [];
-    }
-
-    // Store the drawing data
+    if (!roomDrawings[roomId]) roomDrawings[roomId] = [];
     roomDrawings[roomId].push({ offsetX, offsetY, prevX, prevY, color, brushWidth });
 
-    // Broadcast drawing to others in the room
     socket.to(roomId).emit('drawing', { offsetX, offsetY, prevX, prevY, color, brushWidth });
   });
 
@@ -95,14 +90,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('shapeDrawn', ({ roomId, shape }) => {
-    if (!roomShapes[roomId]) {
-      roomShapes[roomId] = [];
-    }
-
-    // Store the shape data
+    if (!roomShapes[roomId]) roomShapes[roomId] = [];
     roomShapes[roomId].push(shape);
 
-    // Broadcast the shape to others in the room
     socket.to(roomId).emit('shapeDrawn', shape);
   });
 
