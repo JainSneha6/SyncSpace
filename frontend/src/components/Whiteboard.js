@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { io } from "socket.io-client";
 
 // Set the server URL (make sure this matches your backend)
-const socket = io('https://paletteconnect.onrender.com');
+const socket = io("https://paletteconnect.onrender.com");
 
 const Canvas = ({ roomId }) => {
   const canvasRef = useRef(null);
@@ -227,25 +227,7 @@ const Canvas = ({ roomId }) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Emit to clear the board for all users
-    socket.emit('clearBoard', roomId);
-  };
-
-  const addText = (text, x, y, font, color) => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    ctx.font = font;
-    ctx.fillStyle = color;
-    ctx.fillText(text, x, y);
-
-    // Emit text to all users
-    socket.emit('addText', {
-      roomId,
-      text,
-      x,
-      y,
-      font,
-      color
-    });
+    socket.emit("clearBoard", roomId);
   };
 
   return (
