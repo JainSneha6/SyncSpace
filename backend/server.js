@@ -17,9 +17,7 @@ const io = new Server(server, {
 const PORT = 5000;
 
 const rooms = new Map();
-const roomDrawings = {}; // Store drawings for each room
-const roomTextItems = {}; // Store text items for each room
-const roomMessages = {}; // Store chat messages for each room
+let drawings = [];
 
 io.on('connection', (socket) => {
   console.log('A user connected');
@@ -33,8 +31,6 @@ io.on('connection', (socket) => {
 
     const otherUsers = rooms.get(roomID).filter(id => id !== socket.id);
     socket.emit('all users', otherUsers);
-
-    // Send chat history to the new user
     if (roomMessages[roomID]) {
       socket.emit('chatHistory', roomMessages[roomID]);
     }
@@ -45,12 +41,6 @@ io.on('connection', (socket) => {
   socket.on('sending signal', (payload) => {
     io.to(payload.userToSignal).emit('user joined', { signal: payload.signal, callerID: payload.callerID });
   });
-
-  socket.on('changeTextColor', ({ roomId, color }) => {
-    // Emit the new text color to all clients in the room
-    socket.to(roomId).emit('changeTextColor', color);
-  });
-
 
   socket.on('returning signal', (payload) => {
     io.to(payload.callerID).emit('receiving returned signal', { signal: payload.signal, id: socket.id });
@@ -64,8 +54,6 @@ io.on('connection', (socket) => {
 
     const chatMessage = { message, id: socket.id };
     roomMessages[roomId].push(chatMessage);
-
-    // Emit the message to everyone in the room, including the sender
     io.in(roomId).emit('receiveMessage', chatMessage);
   });
 
@@ -74,37 +62,17 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     console.log(`User joined room: ${roomId}`);
 
-    // Load existing drawings for the room
-    if (roomDrawings[roomId]) {
-      socket.emit('loadDrawing', roomDrawings[roomId]);
-    }
-
-    if (roomTextItems[roomId]) {
-      roomTextItems[roomId].forEach((text) => {
-        socket.emit('addText', text);
-      });
-
-    }
+    socket.emit('loadDrawing', drawings);
   });
 
-  socket.on('drawing', ({ roomId, offsetX, offsetY, prevX, prevY, color, brushWidth }) => {
-    if (!roomDrawings[roomId]) roomDrawings[roomId] = [];
-    roomDrawings[roomId].push({ offsetX, offsetY, prevX, prevY, color, brushWidth });
-
-    // Emit to everyone, including the sender
-    io.to(roomId).emit('drawing', { offsetX, offsetY, prevX, prevY, color, brushWidth });
+  socket.on('drawing', (drawingData) => {
+    drawings.push(drawingData);  // Save drawing on the server
+    io.to(drawingData.roomId).emit('drawing', drawingData);  // Broadcast drawing to room
   });
 
   socket.on('clearBoard', (roomId) => {
-    roomDrawings[roomId] = [];
-    io.to(roomId).emit('clearBoard');
-  });
-
-  socket.on('addText', ({ roomId, text, x, y, font, color }) => {
-    if (!roomTextItems[roomId]) roomTextItems[roomId] = [];
-    roomTextItems[roomId].push({ text, x, y, font, color });
-
-    io.to(roomId).emit('addText', { text, x, y, font, color });
+    drawings = [];  // Clear stored drawings
+    io.to(roomId).emit('clearBoard');  // Broadcast clear event
   });
 
 
