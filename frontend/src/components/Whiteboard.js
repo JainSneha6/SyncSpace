@@ -17,6 +17,10 @@ const Whiteboard = () => {
   const [startCoords, setStartCoords] = useState(null); // For shape drawing
   const [showBrushWidth, setShowBrushWidth] = useState(false); // State for brush width visibility
   const { roomId } = useParams();
+  const [isTextToolActive, setIsTextToolActive] = useState(false);
+  const [textSize, setTextSize] = useState(16);
+  const [fontStyle, setFontStyle] = useState('Arial');
+  const [currentText, setCurrentText] = useState('');
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -26,11 +30,18 @@ const Whiteboard = () => {
     socket.on('drawing', ({ offsetX, offsetY, prevX, prevY, color, brushWidth }) =>
       drawLine(ctx, prevX, prevY, offsetX, offsetY, color, brushWidth)
     );
+    socket.on('addText', ({ text, x, y, font, color }) => {
+      ctx.font = font;
+      ctx.fillStyle = color;
+      ctx.fillText(text, x, y);
+    });
     socket.on('clearBoard', () => clearCanvas(ctx));
     return () => {
       socket.off('loadDrawing');
       socket.off('drawing');
+      socket.off('addText');
       socket.off('clearBoard');
+
     };
   }, [roomId]);
 
@@ -70,6 +81,30 @@ const Whiteboard = () => {
     clearCanvas(ctx); // Clear the local canvas
 
     socket.emit('clearBoard', roomId); // Emit event to the server
+  };
+
+  const addText = (event) => {
+    if (!isTextToolActive || !currentText.trim()) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const { offsetX, offsetY } = event.nativeEvent;
+
+    ctx.font = `${textSize}px ${fontStyle}`;
+    ctx.fillStyle = color;
+    ctx.fillText(currentText, offsetX, offsetY);
+
+    // Emit text addition to others
+    socket.emit('addText', {
+      roomId,
+      text: currentText,
+      x: offsetX,
+      y: offsetY,
+      font: `${textSize}px ${fontStyle}`,
+      color,
+    });
+
+    setCurrentText(''); // Clear the input after adding text
   };
 
   const draw = (event) => {
@@ -133,6 +168,54 @@ const Whiteboard = () => {
           )}
         </div>
         {/* Eraser */}
+        {isTextToolActive && (
+          <div className="absolute bottom-4 left-4 bg-white shadow-md p-4 rounded-lg">
+            <input
+              type="text"
+              value={currentText}
+              onChange={(e) => setCurrentText(e.target.value)}
+              placeholder="Enter your text"
+              className="p-2 border rounded-md w-full"
+            />
+          </div>
+        )}
+        <div className="flex flex-col space-y-2">
+          {/* Text Tool Activation */}
+          <button
+            className={`p-2 rounded-md ${isTextToolActive ? 'bg-green-500 text-white' : 'bg-gray-200'}`}
+            onClick={() => setIsTextToolActive(!isTextToolActive)}
+          >
+            Text Tool
+          </button>
+
+          {/* Font Size Selector */}
+          {isTextToolActive && (
+            <input
+              type="range"
+              min="12"
+              max="48"
+              value={textSize}
+              onChange={(e) => setTextSize(e.target.value)}
+              className="w-full"
+            />
+          )}
+
+          {/* Font Style Selector */}
+          {isTextToolActive && (
+            <select
+              value={fontStyle}
+              onChange={(e) => setFontStyle(e.target.value)}
+              className="p-2 border rounded-md"
+            >
+              <option value="Arial">Arial</option>
+              <option value="Courier New">Courier New</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Verdana">Verdana</option>
+            </select>
+          )}
+        </div>
+
         <div className="flex items-center">
           <FaEraser
             className={`text-3xl cursor-pointer ${isErasing ? 'text-red-500' : 'text-gray-500'} hover:scale-110 transition`}
@@ -156,11 +239,12 @@ const Whiteboard = () => {
         ref={canvasRef}
         width={800}
         height={600}
-        onMouseDown={startDrawing}
-        onMouseUp={finishDrawing}
-        onMouseMove={draw}
+        onMouseDown={isTextToolActive ? addText : startDrawing}
+        onMouseUp={isTextToolActive ? null : finishDrawing}
+        onMouseMove={isTextToolActive ? null : draw}
         className="border border-gray-300"
       />
+
     </div>
   );
 };
