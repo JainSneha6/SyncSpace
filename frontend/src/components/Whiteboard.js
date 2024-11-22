@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useParams } from 'react-router-dom';
@@ -24,7 +25,7 @@ const Whiteboard = () => {
   const [shape, setShape] = useState('rectangle');
   const [strokeColor, setStrokeColor] = useState('#000000');
   const [strokeWidth, setStrokeWidth] = useState(2);
-  const [shapes, setShapes] = useState([]);
+  const [shapes, setShapes] = useState([]); // Store shapes
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -86,9 +87,9 @@ const Whiteboard = () => {
 
   const clearBoard = () => {
     const ctx = canvasRef.current.getContext('2d');
-    clearCanvas(ctx); 
+    clearCanvas(ctx);
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    setShapes([]);// Clear the local canvas
+    setShapes([]); // Clear the local canvas shapes
     socket.emit('clearBoard', roomId); // Emit event to the server
   };
 
@@ -119,37 +120,66 @@ const Whiteboard = () => {
     socket.emit('addText', { roomId, ...newText }); // Emit text details to the server
   };
 
-
+  // Function to re-draw all shapes
+  const reDrawAllShapes = () => {
+    const ctx = canvasRef.current.getContext('2d');
+    shapes.forEach((shape) => {
+      drawShape(ctx, shape);
+    });
+  };
 
   const draw = (event) => {
-    const ctx = canvasRef.current.getContext('2d');
-    if (!isDrawing) return;
+    if (isDrawing && !isTextToolActive && startCoords) {
+      const ctx = canvasRef.current.getContext('2d');
+      const { offsetX, offsetY } = event.nativeEvent;
 
-    const { offsetX, offsetY } = event.nativeEvent;
-    const prevPos = ctx.prevPos;
+      // While drawing shapes, dynamically draw the shape (this applies to rectangle, circle, etc.)
+      const tempShape = {
+        type: shape,
+        x1: startCoords.x,
+        y1: startCoords.y,
+        x2: offsetX,
+        y2: offsetY,
+        color: strokeColor,
+        width: strokeWidth,
+      };
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      reDrawAllShapes(); // Re-draw all previous shapes
+      drawShape(ctx, tempShape); // Redraw the shape as it's being drawn
+    } else if (isDrawing && !isErasing) {
+      // Handle regular drawing with brush (not for shapes)
+      const ctx = canvasRef.current.getContext('2d');
+      const { offsetX, offsetY } = event.nativeEvent;
+      const prevPos = ctx.prevPos;
 
-    if (prevPos) {
-      const width = isErasing ? eraserWidth : brushWidth;
-      const colorToUse = isErasing ? '#FFFFFF' : color;
-      drawLine(ctx, prevPos.offsetX, prevPos.offsetY, offsetX, offsetY, colorToUse, width);
-      ctx.prevPos = { offsetX, offsetY };
+      if (prevPos) {
+        const width = isErasing ? eraserWidth : brushWidth;
+        const colorToUse = isErasing ? '#FFFFFF' : color;
+        drawLine(ctx, prevPos.offsetX, prevPos.offsetY, offsetX, offsetY, colorToUse, width);
+        ctx.prevPos = { offsetX, offsetY };
 
-      socket.emit('drawing', {
-        roomId,
-        offsetX,
-        offsetY,
-        prevX: prevPos.offsetX,
-        prevY: prevPos.offsetY,
-        color: colorToUse,
-        brushWidth: width,
-      });
+        socket.emit('drawing', {
+          roomId,
+          offsetX,
+          offsetY,
+          prevX: prevPos.offsetX,
+          prevY: prevPos.offsetY,
+          color: colorToUse,
+          brushWidth: width,
+        });
+      }
     }
   };
 
   const handleMouseDown = (event) => {
     const { offsetX, offsetY } = event.nativeEvent;
-    setIsDrawing(true);
-    setStartCoords({ x: offsetX, y: offsetY });
+
+    if (isTextToolActive) {
+      addText(event);  // If text tool is active, handle text adding
+    } else {
+      setIsDrawing(true);
+      setStartCoords({ x: offsetX, y: offsetY });
+    }
   };
 
   const handleMouseUp = (event) => {
@@ -169,98 +199,61 @@ const Whiteboard = () => {
     };
 
     drawShape(ctx, newShape);
-    setShapes((prev) => [...prev, newShape]);
+    setShapes((prev) => [...prev, newShape]); // Add new shape to state
     setIsDrawing(false);
     setStartCoords(null);
-
-    socket.emit('shapeDrawn', { roomId, shape: newShape });
+    reDrawAllShapes(); // Redraw all shapes including the new one
+    socket.emit('shapeDrawn', { roomId, shape: newShape }); // Emit shape details to server
   };
 
   const drawShape = (ctx, shape) => {
     ctx.strokeStyle = shape.color;
     ctx.lineWidth = shape.width;
-
+    ctx.lineCap = 'round';
     switch (shape.type) {
       case 'rectangle':
-        const rectX = Math.min(shape.x1, shape.x2);
-        const rectY = Math.min(shape.y1, shape.y2);
-        const rectWidth = Math.abs(shape.x2 - shape.x1);
-        const rectHeight = Math.abs(shape.y2 - shape.y1);
-        ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
+        ctx.beginPath();
+        ctx.rect(shape.x1, shape.y1, shape.x2 - shape.x1, shape.y2 - shape.y1);
+        ctx.stroke();
         break;
       case 'circle':
-        const radius = Math.sqrt(
-          Math.pow(shape.x2 - shape.x1, 2) + Math.pow(shape.y2 - shape.y1, 2)
-        );
         ctx.beginPath();
-        ctx.arc(shape.x1, shape.y1, radius, 0, Math.PI * 2);
+        ctx.arc(shape.x1, shape.y1, Math.abs(shape.x2 - shape.x1), 0, Math.PI * 2);
         ctx.stroke();
         break;
-      case 'line':
-        ctx.beginPath();
-        ctx.moveTo(shape.x1, shape.y1);
-        ctx.lineTo(shape.x2, shape.y2);
-        ctx.stroke();
-        break;
+      // Add more shapes as needed
       default:
         break;
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4 relative">
+    <div className="relative">
+      <canvas
+        ref={canvasRef}
+        width="800"
+        height="600"
+        onMouseDown={handleMouseDown}
+        onMouseMove={draw}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={finishDrawing}
+        className="border border-gray-500"
+      />
       <Controls
         color={color}
         setColor={setColor}
-        showPicker={showPicker}
-        setShowPicker={setShowPicker}
         brushWidth={brushWidth}
         setBrushWidth={setBrushWidth}
-        showBrushWidth={showBrushWidth}
         setShowBrushWidth={setShowBrushWidth}
-        isErasing={isErasing}
-        setIsErasing={setIsErasing}
-        eraserWidth={eraserWidth}
-        setEraserWidth={setEraserWidth}
-        isTextToolActive={isTextToolActive}
-        setIsTextToolActive={setIsTextToolActive}
-        currentText={currentText}
-        setCurrentText={setCurrentText}
-        textSize={textSize}
-        setTextSize={setTextSize}
-        fontStyle={fontStyle}
-        setFontStyle={setFontStyle}
+        showBrushWidth={showBrushWidth}
         shape={shape}
         setShape={setShape}
+        clearBoard={clearBoard}
         strokeColor={strokeColor}
         setStrokeColor={setStrokeColor}
         strokeWidth={strokeWidth}
         setStrokeWidth={setStrokeWidth}
-        clearBoard={clearBoard}
       />
-
-
-      <canvas
-        ref={canvasRef}
-        width={800}
-        height={600}
-        onMouseDown={isTextToolActive ? addText : startDrawing}
-        onMouseUp={isTextToolActive ? null : finishDrawing}
-        onMouseMove={isTextToolActive ? null : draw}
-        className="border border-gray-300"
-      >
-        {textItems.map((text, index) => (
-          <text
-            key={index}
-            x={text.x}
-            y={text.y}
-            font={text.font}
-            fill="black"
-          >
-            {text.text}
-          </text>
-        ))}
-      </canvas>
     </div>
   );
 };
