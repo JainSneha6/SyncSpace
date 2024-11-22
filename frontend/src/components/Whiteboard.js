@@ -1,261 +1,289 @@
+import React, { useRef, useState, useEffect } from "react";
+import { io } from "socket.io-client";
 
-import React, { useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
-import { useParams } from 'react-router-dom';
-import Controls from '../WhiteboardComponents/Controls';
-
+// Set the server URL (make sure this matches your backend)
 const socket = io('https://paletteconnect.onrender.com');
 
-const Whiteboard = () => {
+const Canvas = ({ roomId }) => {
   const canvasRef = useRef(null);
-  const { roomId } = useParams();
   const [isDrawing, setIsDrawing] = useState(false);
-  const [color, setColor] = useState('#000000');
-  const [textItems, setTextItems] = useState([]); // Store text items
-  const [brushWidth, setBrushWidth] = useState(2);
-  const [eraserWidth, setEraserWidth] = useState(10);
-  const [isErasing, setIsErasing] = useState(false);
-  const [startCoords, setStartCoords] = useState(null); // For shape drawing
-  const [showBrushWidth, setShowBrushWidth] = useState(false);
-  const [isTextToolActive, setIsTextToolActive] = useState(false);
-  const [currentText, setCurrentText] = useState('');
-  const [textSize, setTextSize] = useState(16);
-  const [fontStyle, setFontStyle] = useState('Arial');
-  const [showPicker, setShowPicker] = useState(false);
-  const [shape, setShape] = useState('rectangle');
-  const [strokeColor, setStrokeColor] = useState('#000000');
-  const [strokeWidth, setStrokeWidth] = useState(2);
-  const [shapes, setShapes] = useState([]); // Store shapes
+  const [tool, setTool] = useState("brush");
+  const [startPoint, setStartPoint] = useState(null);
+  const [sides, setSides] = useState(5);
+  const [color, setColor] = useState("#000000");
 
+  // Handle joining the room
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
     socket.emit('joinRoom', roomId);
-    socket.on('loadDrawing', (drawings) => drawings.forEach((draw) => drawLine(ctx, draw.prevX, draw.prevY, draw.offsetX, draw.offsetY, draw.color, draw.brushWidth)));
-    socket.on('drawing', ({ offsetX, offsetY, prevX, prevY, color, brushWidth }) =>
-      drawLine(ctx, prevX, prevY, offsetX, offsetY, color, brushWidth)
-    );
+
+    socket.on('loadDrawing', (drawings) => {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      drawings.forEach((drawing) => {
+        ctx.strokeStyle = drawing.color;
+        ctx.beginPath();
+        ctx.moveTo(drawing.prevX, drawing.prevY);
+        ctx.lineTo(drawing.offsetX, drawing.offsetY);
+        ctx.stroke();
+      });
+    });
+
+    socket.on('drawing', (drawingData) => {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      ctx.strokeStyle = drawingData.color;
+      ctx.beginPath();
+      ctx.moveTo(drawingData.prevX, drawingData.prevY);
+      ctx.lineTo(drawingData.offsetX, drawingData.offsetY);
+      ctx.stroke();
+    });
+
+    socket.on('clearBoard', () => {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
     socket.on('addText', (textData) => {
-      const { text, x, y, font, color } = textData;
-      ctx.font = font;
-      ctx.fillStyle = color;
-      ctx.fillText(text, x, y);
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      ctx.font = textData.font;
+      ctx.fillStyle = textData.color;
+      ctx.fillText(textData.text, textData.x, textData.y);
     });
-    socket.on('changeTextColor', (color) => {
-      setColor(color); // Update the text color when the server broadcasts the new color
-    });
-    socket.on('clearBoard', () => clearCanvas(ctx));
+
     return () => {
       socket.off('loadDrawing');
       socket.off('drawing');
-      socket.off('addText');
       socket.off('clearBoard');
-      socket.off('changeTextColor');
+      socket.off('addText');
     };
   }, [roomId]);
 
-  const startDrawing = (event) => {
-    const { offsetX, offsetY } = event.nativeEvent;
-    const ctx = canvasRef.current.getContext('2d');
-    ctx.beginPath();
-    ctx.moveTo(offsetX, offsetY);
+  const handleMouseDown = (e) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (tool === "brush") {
+      const ctx = canvas.getContext("2d");
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    }
+
     setIsDrawing(true);
-    ctx.prevPos = { offsetX, offsetY };
-    setStartCoords({ x: offsetX, y: offsetY });
+    setStartPoint({ x, y });
   };
 
-  const finishDrawing = () => {
-    setIsDrawing(false);
-    const ctx = canvasRef.current.getContext('2d');
-    ctx.prevPos = null;
-    setStartCoords(null); // Reset start coordinates
-  };
+  const handleMouseMove = (e) => {
+    if (!isDrawing || tool !== "brush") return;
 
-  const drawLine = (ctx, x1, y1, x2, y2, color, width) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const ctx = canvas.getContext("2d");
     ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
+    ctx.lineTo(x, y);
     ctx.stroke();
-  };
 
-  const clearCanvas = (ctx) => {
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  };
-
-  const clearBoard = () => {
-    const ctx = canvasRef.current.getContext('2d');
-    clearCanvas(ctx);
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    setShapes([]); // Clear the local canvas shapes
-    socket.emit('clearBoard', roomId); // Emit event to the server
-  };
-
-  const addText = (event) => {
-    if (!isTextToolActive || !currentText.trim()) return;
-
-    const canvas = canvasRef.current; // Access the canvas via the reference
-    const ctx = canvas.getContext('2d'); // Get the 2D context of the canvas
-    const { offsetX, offsetY } = event.nativeEvent;
-
-    ctx.font = `${textSize}px ${fontStyle}`;
-    ctx.fillStyle = color; // Use the updated color
-    ctx.fillText(currentText, offsetX, offsetY);
-
-    // Save the text's details
-    const newText = {
-      text: currentText,
-      x: offsetX,
-      y: offsetY,
-      font: `${textSize}px ${fontStyle}`,
-      color: color, // Include color when saving text item
-      width: ctx.measureText(currentText).width,
-      height: textSize,
-    };
-
-    setTextItems((prev) => [...prev, newText]);
-    setCurrentText('');
-    socket.emit('addText', { roomId, ...newText }); // Emit text details to the server
-  };
-
-  // Function to re-draw all shapes
-  const reDrawAllShapes = () => {
-    const ctx = canvasRef.current.getContext('2d');
-    shapes.forEach((shape) => {
-      drawShape(ctx, shape);
+    // Emit drawing to other users
+    socket.emit('drawing', {
+      roomId,
+      offsetX: x,
+      offsetY: y,
+      prevX: startPoint.x,
+      prevY: startPoint.y,
+      color,
+      brushWidth: 5, // Customize this as needed
     });
   };
 
-  const draw = (event) => {
-    if (isDrawing && !isTextToolActive && startCoords) {
-      const ctx = canvasRef.current.getContext('2d');
-      const { offsetX, offsetY } = event.nativeEvent;
+  const handleMouseUp = (e) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
-      // While drawing shapes, dynamically draw the shape (this applies to rectangle, circle, etc.)
-      const tempShape = {
-        type: shape,
-        x1: startCoords.x,
-        y1: startCoords.y,
-        x2: offsetX,
-        y2: offsetY,
-        color: strokeColor,
-        width: strokeWidth,
-      };
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-      reDrawAllShapes(); // Re-draw all previous shapes
-      drawShape(ctx, tempShape); // Redraw the shape as it's being drawn
-    } else if (isDrawing && !isErasing) {
-      // Handle regular drawing with brush (not for shapes)
-      const ctx = canvasRef.current.getContext('2d');
-      const { offsetX, offsetY } = event.nativeEvent;
-      const prevPos = ctx.prevPos;
-
-      if (prevPos) {
-        const width = isErasing ? eraserWidth : brushWidth;
-        const colorToUse = isErasing ? '#FFFFFF' : color;
-        drawLine(ctx, prevPos.offsetX, prevPos.offsetY, offsetX, offsetY, colorToUse, width);
-        ctx.prevPos = { offsetX, offsetY };
-
-        socket.emit('drawing', {
-          roomId,
-          offsetX,
-          offsetY,
-          prevX: prevPos.offsetX,
-          prevY: prevPos.offsetY,
-          color: colorToUse,
-          brushWidth: width,
-        });
-      }
-    }
-  };
-
-  const handleMouseDown = (event) => {
-    const { offsetX, offsetY } = event.nativeEvent;
-
-    if (isTextToolActive) {
-      addText(event);  // If text tool is active, handle text adding
-    } else {
-      setIsDrawing(true);
-      setStartCoords({ x: offsetX, y: offsetY });
-    }
-  };
-
-  const handleMouseUp = (event) => {
-    if (!isDrawing || !startCoords) return;
-
-    const { offsetX, offsetY } = event.nativeEvent;
-    const ctx = canvasRef.current.getContext('2d');
-
-    const newShape = {
-      type: shape,
-      x1: startCoords.x,
-      y1: startCoords.y,
-      x2: offsetX,
-      y2: offsetY,
-      color: strokeColor,
-      width: strokeWidth,
-    };
-
-    drawShape(ctx, newShape);
-    setShapes((prev) => [...prev, newShape]); // Add new shape to state
-    setIsDrawing(false);
-    setStartCoords(null);
-    reDrawAllShapes(); // Redraw all shapes including the new one
-    socket.emit('shapeDrawn', { roomId, shape: newShape }); // Emit shape details to server
-  };
-
-  const drawShape = (ctx, shape) => {
-    ctx.strokeStyle = shape.color;
-    ctx.lineWidth = shape.width;
-    ctx.lineCap = 'round';
-    switch (shape.type) {
-      case 'rectangle':
+    const ctx = canvas.getContext("2d");
+    switch (tool) {
+      case "circle":
+        const radius = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
         ctx.beginPath();
-        ctx.rect(shape.x1, shape.y1, shape.x2 - shape.x1, shape.y2 - shape.y1);
+        ctx.arc(startPoint.x, startPoint.y, radius, 0, 2 * Math.PI);
         ctx.stroke();
         break;
-      case 'circle':
+
+      case "rectangle":
+        ctx.strokeRect(startPoint.x, startPoint.y, x - startPoint.x, y - startPoint.y);
+        break;
+
+      case "line":
         ctx.beginPath();
-        ctx.arc(shape.x1, shape.y1, Math.abs(shape.x2 - shape.x1), 0, Math.PI * 2);
+        ctx.moveTo(startPoint.x, startPoint.y);
+        ctx.lineTo(x, y);
         ctx.stroke();
         break;
-      // Add more shapes as needed
+
+      case "ellipse":
+        const radiusX = Math.abs(x - startPoint.x) / 2;
+        const radiusY = Math.abs(y - startPoint.y) / 2;
+        ctx.beginPath();
+        ctx.ellipse((startPoint.x + x) / 2, (startPoint.y + y) / 2, radiusX, radiusY, 0, 0, 2 * Math.PI);
+        ctx.stroke();
+        break;
+
+      case "triangle":
+        ctx.beginPath();
+        ctx.moveTo(startPoint.x, startPoint.y);
+        ctx.lineTo(x, y);
+        ctx.lineTo(2 * startPoint.x - x, y);
+        ctx.closePath();
+        ctx.stroke();
+        break;
+
+      case "polygon":
+        const radiusPoly = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
+        drawPolygon(ctx, startPoint.x, startPoint.y, radiusPoly, sides);
+        break;
+
+      case "star":
+        const radiusStar = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
+        drawStar(ctx, startPoint.x, startPoint.y, radiusStar, sides);
+        break;
+
+      case "arrow":
+        drawArrow(ctx, startPoint.x, startPoint.y, x, y);
+        break;
+
       default:
         break;
     }
+
+    // Emit the shape drawing to other users
+    socket.emit('drawing', {
+      roomId,
+      offsetX: x,
+      offsetY: y,
+      prevX: startPoint.x,
+      prevY: startPoint.y,
+      color,
+      brushWidth: 5,
+    });
+
+    setIsDrawing(false);
+    setStartPoint(null);
+  };
+
+  const drawPolygon = (ctx, x, y, radius, sides) => {
+    const angleStep = (2 * Math.PI) / sides;
+    ctx.beginPath();
+    for (let i = 0; i < sides; i++) {
+      const px = x + radius * Math.cos(i * angleStep);
+      const py = y + radius * Math.sin(i * angleStep);
+      ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  };
+
+  const drawStar = (ctx, x, y, radius, points) => {
+    const angleStep = (2 * Math.PI) / points;
+    const innerRadius = radius / 2;
+    ctx.beginPath();
+    for (let i = 0; i < points * 2; i++) {
+      const r = i % 2 === 0 ? radius : innerRadius;
+      const px = x + r * Math.cos(i * angleStep);
+      const py = y + r * Math.sin(i * angleStep);
+      ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  };
+
+  const drawArrow = (ctx, startX, startY, endX, endY) => {
+    const headLength = 10; // Length of arrowhead
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const angle = Math.atan2(dy, dx);
+
+    // Draw line
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+
+    // Draw arrowhead
+    ctx.lineTo(endX - headLength * Math.cos(angle - Math.PI / 6), endY - headLength * Math.sin(angle - Math.PI / 6));
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(endX - headLength * Math.cos(angle + Math.PI / 6), endY - headLength * Math.sin(angle + Math.PI / 6));
+    ctx.stroke();
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Emit to clear the board for all users
+    socket.emit('clearBoard', roomId);
+  };
+
+  const addText = (text, x, y, font, color) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    ctx.font = font;
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+
+    // Emit text to all users
+    socket.emit('addText', {
+      roomId,
+      text,
+      x,
+      y,
+      font,
+      color
+    });
   };
 
   return (
-    <div className="relative">
+    <div>
+      <div>
+        <button onClick={() => setTool("brush")}>Brush</button>
+        <button onClick={() => setTool("circle")}>Circle</button>
+        <button onClick={() => setTool("rectangle")}>Rectangle</button>
+        <button onClick={() => setTool("line")}>Line</button>
+        <button onClick={() => setTool("ellipse")}>Ellipse</button>
+        <button onClick={() => setTool("triangle")}>Triangle</button>
+        <button onClick={() => setTool("polygon")}>Polygon</button>
+        <button onClick={() => setTool("star")}>Star</button>
+        <button onClick={() => setTool("arrow")}>Arrow</button>
+        <button onClick={clearCanvas}>Clear</button>
+        <input
+          type="color"
+          value={color}
+          onChange={(e) => setColor(e.target.value)}
+        />
+        <input
+          type="number"
+          value={sides}
+          onChange={(e) => setSides(parseInt(e.target.value))}
+          placeholder="Sides (Polygon/Star)"
+        />
+      </div>
       <canvas
         ref={canvasRef}
-        width="800"
-        height="600"
+        width={800}
+        height={600}
+        style={{ border: "1px solid black" }}
         onMouseDown={handleMouseDown}
-        onMouseMove={draw}
+        onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={finishDrawing}
-        className="border border-gray-500"
-      />
-      <Controls
-        color={color}
-        setColor={setColor}
-        brushWidth={brushWidth}
-        setBrushWidth={setBrushWidth}
-        setShowBrushWidth={setShowBrushWidth}
-        showBrushWidth={showBrushWidth}
-        shape={shape}
-        setShape={setShape}
-        clearBoard={clearBoard}
-        strokeColor={strokeColor}
-        setStrokeColor={setStrokeColor}
-        strokeWidth={strokeWidth}
-        setStrokeWidth={setStrokeWidth}
       />
     </div>
   );
 };
 
-export default Whiteboard;
+export default Canvas;

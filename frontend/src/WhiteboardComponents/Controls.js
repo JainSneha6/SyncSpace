@@ -23,6 +23,8 @@ const Controls = ({
   setStrokeColor,
   strokeWidth,
   setStrokeWidth,
+  setActiveTool,
+  activeTool,
   clearBoard
 }) => {
   return (
@@ -36,7 +38,13 @@ const Controls = ({
         setShowPicker={setShowPicker}
         />
 
-      <BrushWidth brushWidth={brushWidth} setBrushWidth={setBrushWidth} showBrushWidth={showBrushWidth} setShowBrushWidth={setShowBrushWidth} />
+      <BrushWidth 
+        brushWidth={brushWidth} 
+        setBrushWidth={setBrushWidth} 
+        showBrushWidth={showBrushWidth} 
+        setShowBrushWidth={setShowBrushWidth} 
+        setActiveTool={setActiveTool} />
+
       <Eraser isErasing={isErasing} setIsErasing={setIsErasing} eraserWidth={eraserWidth} setEraserWidth={setEraserWidth} />
       <TextTool 
         isTextToolActive={isTextToolActive} 
