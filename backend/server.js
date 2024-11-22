@@ -18,7 +18,7 @@ const PORT = 5000;
 
 const rooms = new Map();
 const roomDrawings = {}; // Store drawings for each room
-const roomShapes = {}; // Store shapes for each room
+
 const roomMessages = {}; // Store chat messages for each room
 
 io.on('connection', (socket) => {
@@ -71,10 +71,7 @@ io.on('connection', (socket) => {
       socket.emit('loadDrawing', roomDrawings[roomId]);
     }
 
-    // Load existing shapes for the room
-    if (roomShapes[roomId]) {
-      socket.emit('loadShapes', roomShapes[roomId]);
-    }
+
   });
 
   socket.on('drawing', ({ roomId, offsetX, offsetY, prevX, prevY, color, brushWidth }) => {
@@ -90,24 +87,9 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('clearBoard');
   });
 
-  socket.on('shapeDrawn', ({ roomId, shape }) => {
-    if (!roomShapes[roomId]) roomShapes[roomId] = [];
-    roomShapes[roomId].push(shape);
 
-    socket.to(roomId).emit('shapeDrawn', shape);
-  });
 
-  // Screen sharing events
-  socket.on('startScreenShare', (roomId) => {
-    socket.join(roomId);
-    console.log(`User ${socket.id} started screen sharing in room: ${roomId}`);
-    socket.to(roomId).emit('userStartedScreenShare', socket.id);
-  });
 
-  socket.on('stopScreenShare', (roomId) => {
-    console.log(`User ${socket.id} stopped screen sharing in room: ${roomId}`);
-    socket.to(roomId).emit('userStoppedScreenShare', socket.id);
-  });
 
   socket.on('screenSignal', (payload) => {
     socket.to(payload.roomId).emit('screenSignal', {
