@@ -84,15 +84,15 @@ const Whiteboard = () => {
 
   const addText = (event) => {
     if (!isTextToolActive || !currentText.trim()) return;
-  
+
     const canvas = canvasRef.current; // Access the canvas via the reference
     const ctx = canvas.getContext('2d'); // Get the 2D context of the canvas
     const { offsetX, offsetY } = event.nativeEvent;
-  
+
     ctx.font = `${textSize}px ${fontStyle}`;
     ctx.fillStyle = color;
     ctx.fillText(currentText, offsetX, offsetY);
-  
+
     // Save the text's details
     const newText = {
       text: currentText,
@@ -102,12 +102,12 @@ const Whiteboard = () => {
       width: ctx.measureText(currentText).width,
       height: textSize,
     };
-  
+
     setTextItems((prev) => [...prev, newText]);
     setCurrentText('');
     socket.emit('addText', { roomId, ...newText });
   };
-  
+
 
   const draw = (event) => {
     const ctx = canvasRef.current.getContext('2d');
@@ -136,29 +136,29 @@ const Whiteboard = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4 relative">
-    <Controls
-      color={color}
-      setColor={setColor}
-      showPicker={showPicker}
-      setShowPicker={setShowPicker}
-      brushWidth={brushWidth}
-      setBrushWidth={setBrushWidth}
-      showBrushWidth={showBrushWidth}
-      setShowBrushWidth={setShowBrushWidth}
-      isErasing={isErasing}
-      setIsErasing={setIsErasing}
-      eraserWidth={eraserWidth}
-      setEraserWidth={setEraserWidth}
-      isTextToolActive={isTextToolActive}
-      setIsTextToolActive={setIsTextToolActive}
-      currentText={currentText}
-      setCurrentText={setCurrentText}
-      textSize={textSize}
-      setTextSize={setTextSize}
-      fontStyle={fontStyle}
-      setFontStyle={setFontStyle}
-      clearBoard={clearBoard}
-    />
+      <Controls
+        color={color}
+        setColor={setColor}
+        showPicker={showPicker}
+        setShowPicker={setShowPicker}
+        brushWidth={brushWidth}
+        setBrushWidth={setBrushWidth}
+        showBrushWidth={showBrushWidth}
+        setShowBrushWidth={setShowBrushWidth}
+        isErasing={isErasing}
+        setIsErasing={setIsErasing}
+        eraserWidth={eraserWidth}
+        setEraserWidth={setEraserWidth}
+        isTextToolActive={isTextToolActive}
+        setIsTextToolActive={setIsTextToolActive}
+        currentText={currentText}
+        setCurrentText={setCurrentText}
+        textSize={textSize}
+        setTextSize={setTextSize}
+        fontStyle={fontStyle}
+        setFontStyle={setFontStyle}
+        clearBoard={clearBoard}
+      />
 
 
       <canvas

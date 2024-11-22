@@ -18,7 +18,7 @@ const PORT = 5000;
 
 const rooms = new Map();
 const roomDrawings = {}; // Store drawings for each room
-
+const roomTextItems = {}; // Store text items for each room
 const roomMessages = {}; // Store chat messages for each room
 
 io.on('connection', (socket) => {
@@ -37,6 +37,11 @@ io.on('connection', (socket) => {
     // Send chat history to the new user
     if (roomMessages[roomID]) {
       socket.emit('chatHistory', roomMessages[roomID]);
+    }
+    if (roomTextItems[roomID]) {
+      roomTextItems[roomID].forEach((text) => {
+        socket.emit('addText', text);
+      });
     }
   });
 
@@ -88,11 +93,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('addText', ({ roomId, text, x, y, font, color }) => {
-    if (!roomDrawings[roomId]) roomDrawings[roomId] = [];
-    roomDrawings[roomId].push({ type: 'text', text, x, y, font, color });
+    if (!roomTextItems[roomId]) roomTextItems[roomId] = [];
+    roomTextItems[roomId].push({ text, x, y, font, color });
 
     io.to(roomId).emit('addText', { text, x, y, font, color });
   });
+
 
   socket.on('screenSignal', (payload) => {
     socket.to(payload.roomId).emit('screenSignal', {
