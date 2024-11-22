@@ -81,12 +81,13 @@ io.on('connection', (socket) => {
     if (!roomDrawings[roomId]) roomDrawings[roomId] = [];
     roomDrawings[roomId].push({ offsetX, offsetY, prevX, prevY, color, brushWidth });
 
-    socket.to(roomId).emit('drawing', { offsetX, offsetY, prevX, prevY, color, brushWidth });
+    // Emit to everyone, including the sender
+    io.to(roomId).emit('drawing', { offsetX, offsetY, prevX, prevY, color, brushWidth });
   });
 
   socket.on('clearBoard', (roomId) => {
-    roomDrawings[roomId] = []; // Clear drawings on the server
-    socket.to(roomId).emit('clearBoard'); // Notify all users in the room to clear their boards
+    roomDrawings[roomId] = [];
+    io.to(roomId).emit('clearBoard');
   });
 
   socket.on('shapeDrawn', ({ roomId, shape }) => {

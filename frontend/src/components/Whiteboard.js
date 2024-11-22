@@ -26,35 +26,30 @@ const Whiteboard = () => {
 
     socket.emit('joinRoom', roomId);
 
-    // Load existing shapes when the user joins
-    socket.on('loadShapes', (shapes) => {
-      shapes.forEach((shape) => {
-        addShapeToCanvas(ctx, shape);
-        setShapes((prevShapes) => [...prevShapes, shape]); // Add to shapes state
-      });
-    });
+    // Load existing drawings and shapes
+    socket.on('loadDrawing', (drawings) => drawings.forEach((draw) => drawLine(ctx, draw.prevX, draw.prevY, draw.offsetX, draw.offsetY, draw.color, draw.brushWidth)));
+    socket.on('loadShapes', (shapes) => shapes.forEach((shape) => drawShape(ctx, shape)));
 
-    socket.on('drawing', ({ offsetX, offsetY, prevX, prevY, color, brushWidth }) => {
-      drawLine(ctx, prevX, prevY, offsetX, offsetY, color, brushWidth);
-    });
+    // Listen for real-time drawing updates
+    socket.on('drawing', ({ offsetX, offsetY, prevX, prevY, color, brushWidth }) =>
+      drawLine(ctx, prevX, prevY, offsetX, offsetY, color, brushWidth)
+    );
 
-    socket.on('clearBoard', () => {
-      clearCanvas(ctx);
-      setShapes([]); // Clear shapes state when board is cleared
-    });
+    // Listen for clear board updates
+    socket.on('clearBoard', () => clearCanvas(ctx));
 
-    socket.on('shapeDrawn', (shape) => {
-      addShapeToCanvas(ctx, shape);
-      setShapes((prevShapes) => [...prevShapes, shape]); // Add to shapes state
-    });
+    // Listen for shape updates
+    socket.on('shapeDrawn', (shape) => drawShape(ctx, shape));
 
     return () => {
+      socket.off('loadDrawing');
       socket.off('loadShapes');
       socket.off('drawing');
       socket.off('clearBoard');
       socket.off('shapeDrawn');
     };
   }, [roomId]);
+
 
   const startDrawing = (event) => {
     const { offsetX, offsetY } = event.nativeEvent;
