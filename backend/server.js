@@ -38,11 +38,8 @@ io.on('connection', (socket) => {
     if (roomMessages[roomID]) {
       socket.emit('chatHistory', roomMessages[roomID]);
     }
-    if (roomTextItems[roomID]) {
-      roomTextItems[roomID].forEach((text) => {
-        socket.emit('addText', text);
-      });
-    }
+
+
   });
 
   socket.on('sending signal', (payload) => {
@@ -76,7 +73,12 @@ io.on('connection', (socket) => {
       socket.emit('loadDrawing', roomDrawings[roomId]);
     }
 
+    if (roomTextItems[roomId]) {
+      roomTextItems[roomId].forEach((text) => {
+        socket.emit('addText', text);
+      });
 
+    }
   });
 
   socket.on('drawing', ({ roomId, offsetX, offsetY, prevX, prevY, color, brushWidth }) => {
