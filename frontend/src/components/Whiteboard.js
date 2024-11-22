@@ -21,6 +21,10 @@ const Whiteboard = () => {
   const [textSize, setTextSize] = useState(16);
   const [fontStyle, setFontStyle] = useState('Arial');
   const [showPicker, setShowPicker] = useState(false);
+  const [shape, setShape] = useState('rectangle');
+  const [strokeColor, setStrokeColor] = useState('#000000');
+  const [strokeWidth, setStrokeWidth] = useState(2);
+  const [shapes, setShapes] = useState([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -82,7 +86,9 @@ const Whiteboard = () => {
 
   const clearBoard = () => {
     const ctx = canvasRef.current.getContext('2d');
-    clearCanvas(ctx); // Clear the local canvas
+    clearCanvas(ctx); 
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    setShapes([]);// Clear the local canvas
     socket.emit('clearBoard', roomId); // Emit event to the server
   };
 
@@ -140,9 +146,65 @@ const Whiteboard = () => {
     }
   };
 
-  const changeTextColor = (newColor) => {
-    setColor(newColor); // Update the local color state for drawing
-    socket.emit('changeTextColor', { roomId, color: newColor }); // Emit the text color to the server
+  const handleMouseDown = (event) => {
+    const { offsetX, offsetY } = event.nativeEvent;
+    setIsDrawing(true);
+    setStartCoords({ x: offsetX, y: offsetY });
+  };
+
+  const handleMouseUp = (event) => {
+    if (!isDrawing || !startCoords) return;
+
+    const { offsetX, offsetY } = event.nativeEvent;
+    const ctx = canvasRef.current.getContext('2d');
+
+    const newShape = {
+      type: shape,
+      x1: startCoords.x,
+      y1: startCoords.y,
+      x2: offsetX,
+      y2: offsetY,
+      color: strokeColor,
+      width: strokeWidth,
+    };
+
+    drawShape(ctx, newShape);
+    setShapes((prev) => [...prev, newShape]);
+    setIsDrawing(false);
+    setStartCoords(null);
+
+    socket.emit('shapeDrawn', { roomId, shape: newShape });
+  };
+
+  const drawShape = (ctx, shape) => {
+    ctx.strokeStyle = shape.color;
+    ctx.lineWidth = shape.width;
+
+    switch (shape.type) {
+      case 'rectangle':
+        const rectX = Math.min(shape.x1, shape.x2);
+        const rectY = Math.min(shape.y1, shape.y2);
+        const rectWidth = Math.abs(shape.x2 - shape.x1);
+        const rectHeight = Math.abs(shape.y2 - shape.y1);
+        ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
+        break;
+      case 'circle':
+        const radius = Math.sqrt(
+          Math.pow(shape.x2 - shape.x1, 2) + Math.pow(shape.y2 - shape.y1, 2)
+        );
+        ctx.beginPath();
+        ctx.arc(shape.x1, shape.y1, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+      case 'line':
+        ctx.beginPath();
+        ctx.moveTo(shape.x1, shape.y1);
+        ctx.lineTo(shape.x2, shape.y2);
+        ctx.stroke();
+        break;
+      default:
+        break;
+    }
   };
 
   return (
@@ -168,6 +230,12 @@ const Whiteboard = () => {
         setTextSize={setTextSize}
         fontStyle={fontStyle}
         setFontStyle={setFontStyle}
+        shape={shape}
+        setShape={setShape}
+        strokeColor={strokeColor}
+        setStrokeColor={setStrokeColor}
+        strokeWidth={strokeWidth}
+        setStrokeWidth={setStrokeWidth}
         clearBoard={clearBoard}
       />
 

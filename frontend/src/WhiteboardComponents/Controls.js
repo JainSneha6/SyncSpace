@@ -3,6 +3,7 @@ import ColorPicker from './ColorPicker';
 import BrushWidth from './BrushWidth';
 import Eraser from './Eraser';
 import TextTool from './TextTool';
+import ShapeTool from './ShapeTool';
 import { FaTrash } from 'react-icons/fa';
 
 const Controls = ({ 
@@ -16,7 +17,13 @@ const Controls = ({
   currentText, setCurrentText, 
   textSize, setTextSize, 
   fontStyle, setFontStyle, 
-  clearBoard 
+  shape,
+  setShape,
+  strokeColor,
+  setStrokeColor,
+  strokeWidth,
+  setStrokeWidth,
+  clearBoard
 }) => {
   return (
     <div className="absolute left-4 top-16 p-4 bg-white shadow-lg rounded-lg space-y-4">
@@ -40,6 +47,15 @@ const Controls = ({
         setTextSize={setTextSize} 
         fontStyle={fontStyle} 
         setFontStyle={setFontStyle} 
+      />
+
+    <ShapeTool
+        shape={shape}
+        setShape={setShape}
+        strokeColor={strokeColor}
+        setStrokeColor={setStrokeColor}
+        strokeWidth={strokeWidth}
+        setStrokeWidth={setStrokeWidth}
       />
 
       <FaTrash
