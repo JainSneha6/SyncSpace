@@ -132,7 +132,7 @@ const VideoRoom = () => {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-pink-500 via-gray-200 to-pink-200 p-6">
-            <h1 className="text-5xl font-bold mb-8 text-white drop-shadow-xl">PaletteConnect</h1>
+            <h1 className="text-5xl font-bold mb-8 text-white drop-shadow-xl">SyncSpace</h1>
             {!roomId ? (
                 <motion.div 
                     className="bg-white p-8 rounded-lg shadow-xl transform transition-transform duration-300 hover:scale-105 w-full max-w-md"
