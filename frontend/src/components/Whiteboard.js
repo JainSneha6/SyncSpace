@@ -11,6 +11,7 @@ const Canvas = () => {
   const [tool, setTool] = useState("brush");
   const [startPoint, setStartPoint] = useState(null);
   const [color, setColor] = useState("#000000");
+  const [brushWidth, setBrushWidth] = useState(5);
   const [sides, setSides] = useState(5); // For polygons and stars
 
   useEffect(() => {
@@ -45,6 +46,7 @@ const Canvas = () => {
 
   const renderDrawing = (ctx, drawing) => {
     ctx.strokeStyle = drawing.color || "#000";
+    ctx.lineWidth = drawing.brushWidth || 1;
 
     switch (drawing.tool) {
       case "brush":
@@ -57,10 +59,12 @@ const Canvas = () => {
       case "circle":
         ctx.beginPath();
         ctx.arc(drawing.startPoint.x, drawing.startPoint.y, drawing.radius, 0, 2 * Math.PI);
+        ctx.lineWidth = drawing.brushWidth || 1; 
         ctx.stroke();
         break;
 
       case "rectangle":
+        ctx.lineWidth = drawing.brushWidth || 1; 
         ctx.strokeRect(
           drawing.startPoint.x,
           drawing.startPoint.y,
@@ -73,6 +77,7 @@ const Canvas = () => {
         ctx.beginPath();
         ctx.moveTo(drawing.startPoint.x, drawing.startPoint.y);
         ctx.lineTo(drawing.endPoint.x, drawing.endPoint.y);
+        ctx.lineWidth = drawing.brushWidth || 1; 
         ctx.stroke();
         break;
 
@@ -87,14 +92,17 @@ const Canvas = () => {
           0,
           2 * Math.PI
         );
+        ctx.lineWidth = drawing.brushWidth || 1; 
         ctx.stroke();
         break;
 
       case "polygon":
+        ctx.lineWidth = drawing.brushWidth || 1; 
         drawPolygon(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.sides);
         break;
 
       case "star":
+        ctx.lineWidth = drawing.brushWidth || 1; 
         drawStar(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.points);
         break;
 
@@ -142,6 +150,7 @@ const Canvas = () => {
       const ctx = canvas.getContext("2d");
       ctx.beginPath();
       ctx.moveTo(x, y);
+      ctx.lineWidth = brushWidth; 
     }
   };
 
@@ -154,13 +163,19 @@ const Canvas = () => {
     const y = e.clientY - rect.top;
     const ctx = canvas.getContext("2d");
   
+    // Set brush properties
     ctx.strokeStyle = color;
+    ctx.lineWidth = brushWidth;
+    ctx.lineCap = "round"; // Ensures the ends of lines are rounded
+    ctx.lineJoin = "round"; // Smoothens the joins between segments
   
-    // Freehand brush drawing
     if (tool === "brush") {
-      ctx.lineTo(x, y);
+      ctx.beginPath();
+      ctx.moveTo(startPoint.x, startPoint.y); // Start from the last point
+      ctx.lineTo(x, y); // Draw to the current point
       ctx.stroke();
   
+      // Emit the drawing event for real-time synchronization
       if (roomId) {
         socket.emit("drawing", {
           roomId,
@@ -170,12 +185,16 @@ const Canvas = () => {
           prevX: startPoint.x,
           prevY: startPoint.y,
           color,
+          brushWidth,
         });
       }
+  
+      // Update the start point for the next segment
       setStartPoint({ x, y });
     }
   };
-
+  
+  
   const handleMouseUp = (e) => {
     if (!isDrawing) return;
 
@@ -185,23 +204,26 @@ const Canvas = () => {
     const y = e.clientY - rect.top;
 
     const ctx = canvas.getContext("2d");
-    let drawingData = { roomId, tool, color };
+    let drawingData = { roomId, tool, color, brushWidth  };
 
     switch (tool) {
       case "circle":
         const radius = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
         ctx.beginPath();
+        ctx.lineWidth = brushWidth; 
         ctx.arc(startPoint.x, startPoint.y, radius, 0, 2 * Math.PI);
         ctx.stroke();
         drawingData = { ...drawingData, startPoint, radius };
         break;
 
       case "rectangle":
+        ctx.lineWidth = brushWidth; 
         ctx.strokeRect(startPoint.x, startPoint.y, x - startPoint.x, y - startPoint.y);
         drawingData = { ...drawingData, startPoint, endPoint: { x, y } };
         break;
 
       case "line":
+        ctx.lineWidth = brushWidth; 
         ctx.beginPath();
         ctx.moveTo(startPoint.x, startPoint.y);
         ctx.lineTo(x, y);
@@ -212,6 +234,7 @@ const Canvas = () => {
       case "ellipse":
         const radiusX = Math.abs(x - startPoint.x) / 2;
         const radiusY = Math.abs(y - startPoint.y) / 2;
+        ctx.lineWidth = brushWidth; 
         ctx.beginPath();
         ctx.ellipse((startPoint.x + x) / 2, (startPoint.y + y) / 2, radiusX, radiusY, 0, 0, 2 * Math.PI);
         ctx.stroke();
@@ -220,12 +243,14 @@ const Canvas = () => {
 
       case "polygon":
         const radiusPoly = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
+        ctx.lineWidth = brushWidth; 
         drawPolygon(ctx, startPoint.x, startPoint.y, radiusPoly, sides);
         drawingData = { ...drawingData, startPoint, radius: radiusPoly, sides };
         break;
 
       case "star":
         const radiusStar = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
+        ctx.lineWidth = brushWidth; 
         drawStar(ctx, startPoint.x, startPoint.y, radiusStar, sides);
         drawingData = { ...drawingData, startPoint, radius: radiusStar, points: sides };
         break;
@@ -259,6 +284,13 @@ const Canvas = () => {
         <button onClick={() => setTool("star")}>Star</button>
         <button onClick={clearCanvas}>Clear</button>
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+        <input
+          type="range"
+          min="1"
+          max="50"
+          value={brushWidth}
+          onChange={(e) => setBrushWidth(Number(e.target.value))}
+        />
         {tool === "polygon" || tool === "star" ? (
           <input
             type="number"
