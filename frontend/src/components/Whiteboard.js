@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:5000"); // Replace with your backend URL
+const socket = io("http://localhost:5000");
 
 const Canvas = () => {
   const canvasRef = useRef(null);
@@ -12,7 +12,8 @@ const Canvas = () => {
   const [startPoint, setStartPoint] = useState(null);
   const [color, setColor] = useState("#000000");
   const [brushWidth, setBrushWidth] = useState(5);
-  const [sides, setSides] = useState(5); // For polygons and stars
+  const [sides, setSides] = useState(5);
+  const [fill, setFill] = useState(false);
 
   useEffect(() => {
     if (roomId) {
@@ -46,6 +47,7 @@ const Canvas = () => {
 
   const renderDrawing = (ctx, drawing) => {
     ctx.strokeStyle = drawing.color || "#000";
+    ctx.fillStyle = drawing.fillColor || "#000"; // Use fillColor for filling shapes
     ctx.lineWidth = drawing.brushWidth || 1;
 
     switch (drawing.tool) {
@@ -59,25 +61,38 @@ const Canvas = () => {
       case "circle":
         ctx.beginPath();
         ctx.arc(drawing.startPoint.x, drawing.startPoint.y, drawing.radius, 0, 2 * Math.PI);
-        ctx.lineWidth = drawing.brushWidth || 1; 
-        ctx.stroke();
+        ctx.lineWidth = drawing.brushWidth || 1;
+        if (drawing.fill) {
+          ctx.fill(); // Fill the circle
+        } else {
+          ctx.stroke();
+        }
         break;
 
       case "rectangle":
-        ctx.lineWidth = drawing.brushWidth || 1; 
-        ctx.strokeRect(
-          drawing.startPoint.x,
-          drawing.startPoint.y,
-          drawing.endPoint.x - drawing.startPoint.x,
-          drawing.endPoint.y - drawing.startPoint.y
-        );
+        ctx.lineWidth = drawing.brushWidth || 1;
+        if (drawing.fill) {
+          ctx.fillRect(
+            drawing.startPoint.x,
+            drawing.startPoint.y,
+            drawing.endPoint.x - drawing.startPoint.x,
+            drawing.endPoint.y - drawing.startPoint.y
+          );
+        } else {
+          ctx.strokeRect(
+            drawing.startPoint.x,
+            drawing.startPoint.y,
+            drawing.endPoint.x - drawing.startPoint.x,
+            drawing.endPoint.y - drawing.startPoint.y
+          );
+        }
         break;
 
       case "line":
         ctx.beginPath();
         ctx.moveTo(drawing.startPoint.x, drawing.startPoint.y);
         ctx.lineTo(drawing.endPoint.x, drawing.endPoint.y);
-        ctx.lineWidth = drawing.brushWidth || 1; 
+        ctx.lineWidth = drawing.brushWidth || 1;
         ctx.stroke();
         break;
 
@@ -92,18 +107,36 @@ const Canvas = () => {
           0,
           2 * Math.PI
         );
-        ctx.lineWidth = drawing.brushWidth || 1; 
-        ctx.stroke();
+        ctx.lineWidth = drawing.brushWidth || 1;
+        if (drawing.fill) {
+          ctx.fill(); // Fill the ellipse
+        } else {
+          ctx.stroke();
+        }
         break;
 
       case "polygon":
-        ctx.lineWidth = drawing.brushWidth || 1; 
-        drawPolygon(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.sides);
+        ctx.lineWidth = drawing.brushWidth || 1;
+        if (drawing.fill) {
+          ctx.beginPath();
+          drawPolygon(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.sides);
+          ctx.fill(); // Fill the polygon
+        } else {
+          drawPolygon(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.sides);
+          ctx.stroke();
+        }
         break;
 
       case "star":
-        ctx.lineWidth = drawing.brushWidth || 1; 
-        drawStar(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.points);
+        ctx.lineWidth = drawing.brushWidth || 1;
+        if (drawing.fill) {
+          ctx.beginPath();
+          drawStar(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.points);
+          ctx.fill(); // Fill the star
+        } else {
+          drawStar(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.points);
+          ctx.stroke();
+        }
         break;
 
       default:
@@ -142,39 +175,40 @@ const Canvas = () => {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-  
+
     setIsDrawing(true);
     setStartPoint({ x, y });
-  
+
     if (tool === "brush") {
       const ctx = canvas.getContext("2d");
       ctx.beginPath();
       ctx.moveTo(x, y);
-      ctx.lineWidth = brushWidth; 
+      ctx.lineWidth = brushWidth;
     }
   };
 
   const handleMouseMove = (e) => {
     if (!isDrawing) return;
-  
+
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const ctx = canvas.getContext("2d");
-  
+
     // Set brush properties
     ctx.strokeStyle = color;
+    ctx.fillStyle = color;
     ctx.lineWidth = brushWidth;
     ctx.lineCap = "round"; // Ensures the ends of lines are rounded
     ctx.lineJoin = "round"; // Smoothens the joins between segments
-  
+
     if (tool === "brush") {
       ctx.beginPath();
       ctx.moveTo(startPoint.x, startPoint.y); // Start from the last point
       ctx.lineTo(x, y); // Draw to the current point
       ctx.stroke();
-  
+
       // Emit the drawing event for real-time synchronization
       if (roomId) {
         socket.emit("drawing", {
@@ -186,15 +220,16 @@ const Canvas = () => {
           prevY: startPoint.y,
           color,
           brushWidth,
+          fill
         });
       }
-  
+
       // Update the start point for the next segment
       setStartPoint({ x, y });
     }
   };
-  
-  
+
+
   const handleMouseUp = (e) => {
     if (!isDrawing) return;
 
@@ -204,26 +239,34 @@ const Canvas = () => {
     const y = e.clientY - rect.top;
 
     const ctx = canvas.getContext("2d");
-    let drawingData = { roomId, tool, color, brushWidth  };
+    let drawingData = { roomId, tool, color, brushWidth, fill };
 
     switch (tool) {
       case "circle":
         const radius = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
         ctx.beginPath();
-        ctx.lineWidth = brushWidth; 
+        ctx.lineWidth = brushWidth;
         ctx.arc(startPoint.x, startPoint.y, radius, 0, 2 * Math.PI);
-        ctx.stroke();
+        if (fill) {
+          ctx.fill(); // Fill the circle
+        } else {
+          ctx.stroke();
+        }
         drawingData = { ...drawingData, startPoint, radius };
         break;
 
       case "rectangle":
-        ctx.lineWidth = brushWidth; 
-        ctx.strokeRect(startPoint.x, startPoint.y, x - startPoint.x, y - startPoint.y);
+        ctx.lineWidth = brushWidth;
+        if (fill) {
+          ctx.fillRect(startPoint.x, startPoint.y, x - startPoint.x, y - startPoint.y);
+        } else {
+          ctx.strokeRect(startPoint.x, startPoint.y, x - startPoint.x, y - startPoint.y);
+        }
         drawingData = { ...drawingData, startPoint, endPoint: { x, y } };
         break;
 
       case "line":
-        ctx.lineWidth = brushWidth; 
+        ctx.lineWidth = brushWidth;
         ctx.beginPath();
         ctx.moveTo(startPoint.x, startPoint.y);
         ctx.lineTo(x, y);
@@ -234,24 +277,41 @@ const Canvas = () => {
       case "ellipse":
         const radiusX = Math.abs(x - startPoint.x) / 2;
         const radiusY = Math.abs(y - startPoint.y) / 2;
-        ctx.lineWidth = brushWidth; 
+        ctx.lineWidth = brushWidth;
         ctx.beginPath();
         ctx.ellipse((startPoint.x + x) / 2, (startPoint.y + y) / 2, radiusX, radiusY, 0, 0, 2 * Math.PI);
         ctx.stroke();
+
+        if (fill) {
+          ctx.fill();
+        } else {
+          ctx.stroke();
+        }
+
         drawingData = { ...drawingData, startPoint, endPoint: { x, y }, radiusX, radiusY };
         break;
 
       case "polygon":
         const radiusPoly = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
-        ctx.lineWidth = brushWidth; 
+        ctx.lineWidth = brushWidth;
         drawPolygon(ctx, startPoint.x, startPoint.y, radiusPoly, sides);
+        if (fill) {
+          ctx.fill();
+        } else {
+          ctx.stroke();
+        }
         drawingData = { ...drawingData, startPoint, radius: radiusPoly, sides };
         break;
 
       case "star":
         const radiusStar = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
-        ctx.lineWidth = brushWidth; 
+        ctx.lineWidth = brushWidth;
         drawStar(ctx, startPoint.x, startPoint.y, radiusStar, sides);
+        if (fill) {
+          ctx.fill();
+        } else {
+          ctx.stroke();
+        }
         drawingData = { ...drawingData, startPoint, radius: radiusStar, points: sides };
         break;
 
@@ -299,6 +359,10 @@ const Canvas = () => {
             onChange={(e) => setSides(Number(e.target.value))}
           />
         ) : null}
+        <label>
+          Fill shapes:
+          <input type="checkbox" checked={fill} onChange={() => setFill(!fill)} />
+        </label>
       </div>
       <canvas
         ref={canvasRef}
