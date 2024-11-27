@@ -1,6 +1,20 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
+import {
+  RiBrushFill,
+  RiEraserFill,
+  RiRadioButtonFill,
+  RiCheckboxBlankFill,
+  RiFontSize,
+  RiDeleteBinLine,
+  RiRefreshLine,
+  RiTriangleFill,
+  RiAddFill,
+  RiStarFill,
+  RiArrowRightSLine,
+  RiBikeFill,
+} from "react-icons/ri";
 
 const socket = io("http://localhost:5000");
 
@@ -17,6 +31,7 @@ const Canvas = () => {
   const [textBoxes, setTextBoxes] = useState([]); // Store text boxes
   const [currentText, setCurrentText] = useState(""); // Text being typed
   const [selectedTextBox, setSelectedTextBox] = useState(null); // Active text box
+  const [showShapeMenu, setShowShapeMenu] = useState(false);
 
   useEffect(() => {
     if (roomId) {
@@ -111,6 +126,10 @@ const Canvas = () => {
     if (e.key === "Enter") {
       setSelectedTextBox(null); // Deselect text box on Enter
     }
+  };
+
+  const handleShapeMenuVisibility = (status) => {
+    setShowShapeMenu(status);
   };
 
   const renderDrawing = (ctx, drawing) => {
@@ -410,52 +429,146 @@ const Canvas = () => {
   };
 
   return (
-    <div>
-      <div>
-        <button onClick={() => setTool("brush")}>Brush</button>
-        <button onClick={() => setTool("eraser")}>Eraser</button>
-        <button onClick={() => setTool("circle")}>Circle</button>
-        <button onClick={() => setTool("rectangle")}>Rectangle</button>
-        <button onClick={() => setTool("line")}>Line</button>
-        <button onClick={() => setTool("ellipse")}>Ellipse</button>
-        <button onClick={() => setTool("polygon")}>Polygon</button>
-        <button onClick={() => setTool("star")}>Star</button>
-        <button onClick={() => setTool("text")}>Text</button>
-        <button onClick={clearText}>Clear Text</button>
-        <button onClick={clearCanvas}>Clear</button>
-        <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+    <div className="min-h-screen bg-pink-600 flex">
+      <div className="bg-white shadow-xl rounded-r-lg p-4 flex flex-col gap-4">
+        <h2 className="text-pink-600 text-xl font-bold mb-4">Tools</h2>
+        <button
+          onClick={() => setTool("brush")}
+          className={`p-3 rounded-full shadow-md transition-all ${
+            tool === "brush"
+              ? "bg-pink-600 text-white"
+              : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+          }`}
+        >
+          <RiBrushFill className="text-xl" />
+        </button>
+        <button
+          onClick={() => setTool("eraser")}
+          className={`p-3 rounded-full shadow-md transition-all ${
+            tool === "eraser"
+              ? "bg-pink-600 text-white"
+              : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+          }`}
+        >
+          <RiEraserFill className="text-xl" />
+        </button>
+        
+        <div
+          className="relative"
+          onMouseEnter={() => handleShapeMenuVisibility(true)} // Show on enter
+          onMouseLeave={() => handleShapeMenuVisibility(false)} // Hide on leave
+        >
+          <button
+            className={`p-3 rounded-full shadow-md transition-all ${
+              tool === "shape"
+                ? "bg-pink-600 text-white"
+                : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+            }`}
+          >
+            <RiRadioButtonFill className="text-xl" />
+          </button>
+
+          {/* Shape Dropdown Menu */}
+          {showShapeMenu && (
+            <div className="absolute left-0 top-12 bg-white p-2 rounded-md shadow-lg flex flex-col gap-2 max-h-64 overflow-y-auto w-36">
+              <button
+                onClick={() => setTool("circle")}
+                className="p-2 hover:bg-pink-600 hover:text-white rounded-full"
+              >
+                <RiRadioButtonFill className="text-xl" />
+              </button>
+              <button
+                onClick={() => setTool("rectangle")}
+                className="p-2 hover:bg-pink-600 hover:text-white rounded-full"
+              >
+                <RiCheckboxBlankFill className="text-xl" />
+              </button>
+              <button
+                onClick={() => setTool("triangle")}
+                className="p-2 hover:bg-pink-600 hover:text-white rounded-full"
+              >
+                <RiTriangleFill className="text-xl" />
+              </button>
+              <button
+                onClick={() => setTool("line")}
+                className="p-2 hover:bg-pink-600 hover:text-white rounded-full"
+              >
+                <RiAddFill className="text-xl" />
+              </button>
+              <button
+                onClick={() => setTool("ellipse")}
+                className="p-2 hover:bg-pink-600 hover:text-white rounded-full"
+              >
+                <RiBikeFill className="text-xl" />
+              </button>
+              <button
+                onClick={() => setTool("polygon")}
+                className="p-2 hover:bg-pink-600 hover:text-white rounded-full"
+              >
+                <RiCheckboxBlankFill className="text-xl" />
+              </button>
+              <button
+                onClick={() => setTool("star")}
+                className="p-2 hover:bg-pink-600 hover:text-white rounded-full"
+              >
+                <RiStarFill className="text-xl" />
+              </button>
+              <button
+                onClick={() => setTool("arrow")}
+                className="p-2 hover:bg-pink-600 hover:text-white rounded-full"
+              >
+                <RiArrowRightSLine className="text-xl" />
+              </button>
+            </div>
+          )}
+        </div>
+        <button
+          onClick={() => setTool("text")}
+          className={`p-3 rounded-full shadow-md transition-all ${
+            tool === "text"
+              ? "bg-pink-600 text-white"
+              : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+          }`}
+        >
+          <RiFontSize className="text-xl" />
+        </button>
+        <input
+          type="color"
+          value={color}
+          onChange={(e) => setColor(e.target.value)}
+          className="w-10 h-10 rounded-full border-2 border-pink-600 cursor-pointer"
+        />
         <input
           type="range"
           min="1"
           max="50"
           value={brushWidth}
           onChange={(e) => setBrushWidth(Number(e.target.value))}
+          className="accent-pink-600"
         />
-        {tool === "polygon" || tool === "star" ? (
-          <input
-            type="number"
-            min="3"
-            value={sides}
-            onChange={(e) => setSides(Number(e.target.value))}
-          />
-        ) : null}
-        <label>
-          Fill shapes:
-          <input type="checkbox" checked={fill} onChange={() => setFill(!fill)} />
-        </label>
+        <button
+          onClick={clearText}
+          className="p-3 rounded-full bg-white text-pink-600 shadow-md transition-all hover:bg-pink-600 hover:text-white"
+        >
+          <RiDeleteBinLine className="text-xl" />
+        </button>
+        <button
+          onClick={clearCanvas}
+          className="p-3 rounded-full bg-white text-pink-600 shadow-md transition-all hover:bg-pink-600 hover:text-white"
+        >
+          <RiRefreshLine className="text-xl" />
+        </button>
       </div>
+
       <div
-        style={{ position: "relative" }}
-        onClick={handleCanvasClick}
-        onKeyDown={handleKeyDown}
-        tabIndex={0} 
+        className="relative bg-white rounded-lg shadow-xl overflow-hidden flex-grow m-8"
       >
         {renderTextBoxes()}
         <canvas
           ref={canvasRef}
-          width={800}
-          height={600}
-          style={{ border: "1px solid black" }}
+          width={1310}
+          height={662}
+          className="border-2 border-pink-600 rounded-lg"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -465,8 +578,8 @@ const Canvas = () => {
             type="text"
             value={currentText}
             onChange={handleTextInputChange}
+            className="absolute text-pink-600 text-lg"
             style={{
-              position: "absolute",
               top: textBoxes.find((box) => box.id === selectedTextBox).y,
               left: textBoxes.find((box) => box.id === selectedTextBox).x,
             }}
