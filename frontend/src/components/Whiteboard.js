@@ -448,7 +448,7 @@ const Canvas = () => {
         style={{ position: "relative" }}
         onClick={handleCanvasClick}
         onKeyDown={handleKeyDown}
-        tabIndex={0} // Make div focusable for key events
+        tabIndex={0} 
       >
         {renderTextBoxes()}
         <canvas
