@@ -14,6 +14,9 @@ const Canvas = () => {
   const [brushWidth, setBrushWidth] = useState(5);
   const [sides, setSides] = useState(5);
   const [fill, setFill] = useState(false);
+  const [textBoxes, setTextBoxes] = useState([]); // Store text boxes
+  const [currentText, setCurrentText] = useState(""); // Text being typed
+  const [selectedTextBox, setSelectedTextBox] = useState(null); // Active text box
 
   useEffect(() => {
     if (roomId) {
@@ -45,6 +48,71 @@ const Canvas = () => {
     };
   }, [roomId]);
 
+  const handleCanvasClick = (e) => {
+    if (tool !== "text") return;
+
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const newTextBox = {
+      id: Date.now(),
+      x,
+      y,
+      text: "",
+      color,
+    };
+
+    setTextBoxes([...textBoxes, newTextBox]);
+    setSelectedTextBox(newTextBox.id);
+  };
+
+  const handleTextInputChange = (e) => {
+    const text = e.target.value;
+    setCurrentText(text);
+
+    setTextBoxes((boxes) =>
+      boxes.map((box) =>
+        box.id === selectedTextBox ? { ...box, text } : box
+      )
+    );
+  };
+
+  const renderTextBoxes = () => {
+    return textBoxes.map((box) => (
+      <textarea
+        key={box.id}
+        value={box.text}
+        onChange={(e) => handleTextInputChange(e, box.id)}
+        onClick={() => setSelectedTextBox(box.id)}
+        style={{
+          position: "absolute",
+          top: box.y,
+          left: box.x,
+          color: box.color,
+          border: "none",
+          resize: "none",
+          backgroundColor: "transparent",
+        }}
+      />
+    ));
+  };
+
+  const clearText = () => {
+    setTextBoxes([]); // Clear all textboxes
+    setSelectedTextBox(null); // Deselect any active textbox
+    setCurrentText(""); // Reset current text
+  };
+
+  const handleKeyDown = (e) => {
+    if (tool !== "text" || selectedTextBox === null) return;
+
+    if (e.key === "Enter") {
+      setSelectedTextBox(null); // Deselect text box on Enter
+    }
+  };
+
   const renderDrawing = (ctx, drawing) => {
     ctx.strokeStyle = drawing.color || "#000";
     ctx.fillStyle = drawing.fillColor || "#000"; // Use fillColor for filling shapes
@@ -55,6 +123,15 @@ const Canvas = () => {
         ctx.beginPath();
         ctx.moveTo(drawing.prevX, drawing.prevY);
         ctx.lineTo(drawing.offsetX, drawing.offsetY);
+        ctx.stroke();
+        break;
+
+      case "eraser":
+        ctx.beginPath();
+        ctx.moveTo(drawing.prevX, drawing.prevY);
+        ctx.lineTo(drawing.offsetX, drawing.offsetY);
+        ctx.strokeStyle = "#FFFFFF"; // Use white for eraser
+        ctx.lineWidth = drawing.brushWidth || 1;
         ctx.stroke();
         break;
 
@@ -179,7 +256,7 @@ const Canvas = () => {
     setIsDrawing(true);
     setStartPoint({ x, y });
 
-    if (tool === "brush") {
+    if (tool === "brush" || tool === "eraser") {
       const ctx = canvas.getContext("2d");
       ctx.beginPath();
       ctx.moveTo(x, y);
@@ -197,13 +274,13 @@ const Canvas = () => {
     const ctx = canvas.getContext("2d");
 
     // Set brush properties
-    ctx.strokeStyle = color;
+    ctx.strokeStyle = tool === "eraser" ? "#FFFFFF" : color;
     ctx.fillStyle = color;
     ctx.lineWidth = brushWidth;
     ctx.lineCap = "round"; // Ensures the ends of lines are rounded
     ctx.lineJoin = "round"; // Smoothens the joins between segments
 
-    if (tool === "brush") {
+    if (tool === "brush" || tool === "eraser") {
       ctx.beginPath();
       ctx.moveTo(startPoint.x, startPoint.y); // Start from the last point
       ctx.lineTo(x, y); // Draw to the current point
@@ -218,7 +295,7 @@ const Canvas = () => {
           offsetY: y,
           prevX: startPoint.x,
           prevY: startPoint.y,
-          color,
+          color: tool === "eraser" ? "#FFFFFF" : color,
           brushWidth,
           fill
         });
@@ -336,12 +413,15 @@ const Canvas = () => {
     <div>
       <div>
         <button onClick={() => setTool("brush")}>Brush</button>
+        <button onClick={() => setTool("eraser")}>Eraser</button>
         <button onClick={() => setTool("circle")}>Circle</button>
         <button onClick={() => setTool("rectangle")}>Rectangle</button>
         <button onClick={() => setTool("line")}>Line</button>
         <button onClick={() => setTool("ellipse")}>Ellipse</button>
         <button onClick={() => setTool("polygon")}>Polygon</button>
         <button onClick={() => setTool("star")}>Star</button>
+        <button onClick={() => setTool("text")}>Text</button>
+        <button onClick={clearText}>Clear Text</button>
         <button onClick={clearCanvas}>Clear</button>
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
         <input
@@ -364,15 +444,35 @@ const Canvas = () => {
           <input type="checkbox" checked={fill} onChange={() => setFill(!fill)} />
         </label>
       </div>
-      <canvas
-        ref={canvasRef}
-        width={800}
-        height={600}
-        style={{ border: "1px solid black" }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-      />
+      <div
+        style={{ position: "relative" }}
+        onClick={handleCanvasClick}
+        onKeyDown={handleKeyDown}
+        tabIndex={0} // Make div focusable for key events
+      >
+        {renderTextBoxes()}
+        <canvas
+          ref={canvasRef}
+          width={800}
+          height={600}
+          style={{ border: "1px solid black" }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+        />
+        {selectedTextBox && (
+          <input
+            type="text"
+            value={currentText}
+            onChange={handleTextInputChange}
+            style={{
+              position: "absolute",
+              top: textBoxes.find((box) => box.id === selectedTextBox).y,
+              left: textBoxes.find((box) => box.id === selectedTextBox).x,
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 };
