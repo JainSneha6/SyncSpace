@@ -8,9 +8,10 @@ import { FaArrowsAltH, FaGripLines } from "react-icons/fa";
 
 const socket = io("https://paletteconnect.onrender.com");
 
+
 const Canvas = () => {
   const canvasRef = useRef(null);
-  const roomId = useParams().roomId; 
+  const roomId = useParams().roomId; // Assuming roomId is passed via route params
   const [isDrawing, setIsDrawing] = useState(false);
   const [tool, setTool] = useState("brush");
   const [startPoint, setStartPoint] = useState(null);
@@ -49,20 +50,10 @@ const Canvas = () => {
     };
   }, [roomId]);
 
-  const handleColorClick = () => {
-    colorInputRef.current.click();
-  };
-
   const renderDrawing = (ctx, drawing) => {
-    if (!drawing || !drawing.startPoint || !drawing.endPoint) {
-      console.error('Invalid drawing data:', drawing);
-      return;
-    }
-  
     ctx.strokeStyle = drawing.color || "#000";
-    ctx.fillStyle = drawing.fillColor || "#000"; 
     ctx.lineWidth = drawing.brushWidth || 1;
-  
+
     switch (drawing.tool) {
       case "brush":
         ctx.beginPath();
@@ -70,23 +61,14 @@ const Canvas = () => {
         ctx.lineTo(drawing.offsetX, drawing.offsetY);
         ctx.stroke();
         break;
-  
-      case "eraser":
-        ctx.beginPath();
-        ctx.moveTo(drawing.prevX, drawing.prevY);
-        ctx.lineTo(drawing.offsetX, drawing.offsetY);
-        ctx.strokeStyle = "#FFFFFF"; 
-        ctx.lineWidth = drawing.brushWidth || 1;
-        ctx.stroke();
-        break;
-  
+
       case "circle":
         ctx.beginPath();
         ctx.arc(drawing.startPoint.x, drawing.startPoint.y, drawing.radius, 0, 2 * Math.PI);
         ctx.lineWidth = drawing.brushWidth || 1;
         ctx.stroke();
         break;
-  
+
       case "rectangle":
         ctx.lineWidth = drawing.brushWidth || 1;
         ctx.strokeRect(
@@ -96,7 +78,7 @@ const Canvas = () => {
           drawing.endPoint.y - drawing.startPoint.y
         );
         break;
-  
+
       case "line":
         ctx.beginPath();
         ctx.moveTo(drawing.startPoint.x, drawing.startPoint.y);
@@ -104,7 +86,7 @@ const Canvas = () => {
         ctx.lineWidth = drawing.brushWidth || 1;
         ctx.stroke();
         break;
-  
+
       case "ellipse":
         ctx.beginPath();
         ctx.ellipse(
@@ -119,40 +101,35 @@ const Canvas = () => {
         ctx.lineWidth = drawing.brushWidth || 1;
         ctx.stroke();
         break;
-  
+
       case "polygon":
         ctx.lineWidth = drawing.brushWidth || 1;
         drawPolygon(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.sides);
         ctx.stroke();
         break;
-  
+
       case "star":
         ctx.lineWidth = drawing.brushWidth || 1;
         drawStar(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.points);
         ctx.stroke();
         break;
-  
+
       case "triangle":
-        const triangleHeight = Math.sqrt(Math.pow(drawing.endPoint.x - drawing.startPoint.x, 2) + Math.pow(drawing.endPoint.y - drawing.startPoint.y, 2));
-        const triangleBase = triangleHeight;
-        const p1 = { x: drawing.startPoint.x, y: drawing.startPoint.y };
-        const p2 = { x: drawing.endPoint.x, y: drawing.endPoint.y };
-        const p3 = { x: (drawing.startPoint.x + drawing.endPoint.x) / 2, y: drawing.startPoint.y - triangleHeight };
-        ctx.lineWidth = drawing.brushWidth;
-        drawTriangle(ctx, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
-        ctx.stroke();
+        drawTriangle(ctx, drawing.startPoint, drawing.endPoint, drawing.fill);
         break;
-  
+
       case "arrow":
-        ctx.lineWidth = drawing.brushWidth;
-        drawArrow(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.endPoint.x, drawing.endPoint.y, drawing.brushWidth);
-        ctx.stroke();
+        drawArrow(ctx, drawing.startPoint, drawing.endPoint, drawing.fill);
         break;
-  
+
       default:
         console.error("Unknown tool:", drawing.tool);
     }
-  };  
+  };
+
+  const handleColorClick = () => {
+    colorInputRef.current.click();
+  };
 
   const drawPolygon = (ctx, x, y, radius, sides) => {
     const angleStep = (2 * Math.PI) / sides;
@@ -165,6 +142,7 @@ const Canvas = () => {
     ctx.closePath();
     ctx.stroke();
   };
+
 
   const drawStar = (ctx, x, y, radius, points) => {
     const angleStep = (2 * Math.PI) / points;
@@ -180,31 +158,45 @@ const Canvas = () => {
     ctx.stroke();
   };
 
-  const drawArrow = (ctx, startX, startY, endX, endY, arrowSize = 10) => {
-    const angle = Math.atan2(endY - startY, endX - startX);
-    const arrowAngle = Math.PI / 6; 
+  const drawTriangle = (ctx, start, end, fillShape) => {
     ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
-    
-    ctx.beginPath();
-    ctx.moveTo(endX, endY);
-    ctx.lineTo(endX - arrowSize * Math.cos(angle - arrowAngle), endY - arrowSize * Math.sin(angle - arrowAngle));
-    ctx.moveTo(endX, endY);
-    ctx.lineTo(endX - arrowSize * Math.cos(angle + arrowAngle), endY - arrowSize * Math.sin(angle + arrowAngle));
-    ctx.stroke();
+    ctx.moveTo(start.x, end.y); // Bottom-left
+    ctx.lineTo(end.x, end.y); // Bottom-right
+    ctx.lineTo((start.x + end.x) / 2, start.y); // Top-center
+    ctx.closePath();
+    if (fillShape) ctx.fill();
+    else ctx.stroke();
   };
 
-  const drawTriangle = (ctx, x1, y1, x2, y2, x3, y3) => {
+  const drawArrow = (ctx, start, end, fillShape) => {
+    const arrowWidth = 10;
+    const arrowHeight = 20;
+
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    const arrowPoint = { x: end.x, y: end.y };
+    const arrowBase1 = {
+      x: end.x - arrowHeight * Math.cos(angle) + arrowWidth * Math.sin(angle),
+      y: end.y - arrowHeight * Math.sin(angle) - arrowWidth * Math.cos(angle),
+    };
+    const arrowBase2 = {
+      x: end.x - arrowHeight * Math.cos(angle) - arrowWidth * Math.sin(angle),
+      y: end.y - arrowHeight * Math.sin(angle) + arrowWidth * Math.cos(angle),
+    };
+
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.lineTo(x3, y3);
-    ctx.closePath();
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(arrowPoint.x, arrowPoint.y);
     ctx.stroke();
-  };  
-  
+
+    ctx.beginPath();
+    ctx.moveTo(arrowBase1.x, arrowBase1.y);
+    ctx.lineTo(arrowPoint.x, arrowPoint.y);
+    ctx.lineTo(arrowBase2.x, arrowBase2.y);
+    ctx.closePath();
+
+    if (fillShape) ctx.fill();
+    else ctx.stroke();
+  };
 
   const handleMouseDown = (e) => {
     const canvas = canvasRef.current;
@@ -215,13 +207,13 @@ const Canvas = () => {
     setIsDrawing(true);
     setStartPoint({ x, y });
 
-    if (tool === "brush" || tool === "eraser") {
+    if (tool === "brush") {
       const ctx = canvas.getContext("2d");
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineWidth = brushWidth;
-    }
-  };
+    }
+  };
 
   const handleMouseMove = (e) => {
     if (!isDrawing) return;
@@ -232,16 +224,19 @@ const Canvas = () => {
     const y = e.clientY - rect.top;
     const ctx = canvas.getContext("2d");
 
-    ctx.strokeStyle = tool === "eraser" ? "#FFFFFF" : color;
+    // Set brush properties
+    ctx.strokeStyle = color;
     ctx.lineWidth = brushWidth;
-    ctx.lineCap = "round"; 
-    ctx.lineJoin = "round"; 
+    ctx.lineCap = "round"; // Ensures the ends of lines are rounded
+    ctx.lineJoin = "round"; // Smoothens the joins between segments
 
-    if (tool === "brush" || tool === "eraser") {
+    if (tool === "brush") {
       ctx.beginPath();
-      ctx.moveTo(startPoint.x, startPoint.y); 
-      ctx.lineTo(x, y);
+      ctx.moveTo(startPoint.x, startPoint.y); // Start from the last point
+      ctx.lineTo(x, y); // Draw to the current point
       ctx.stroke();
+
+      // Emit the drawing event for real-time synchronization
       if (roomId) {
         socket.emit("drawing", {
           roomId,
@@ -250,10 +245,12 @@ const Canvas = () => {
           offsetY: y,
           prevX: startPoint.x,
           prevY: startPoint.y,
-          color: tool === "eraser" ? "#FFFFFF" : color,
+          color,
           brushWidth,
         });
       }
+
+      // Update the start point for the next segment
       setStartPoint({ x, y });
     }
   };
@@ -318,27 +315,19 @@ const Canvas = () => {
         ctx.lineWidth = brushWidth;
         drawStar(ctx, startPoint.x, startPoint.y, radiusStar, sides);
         ctx.stroke();
+
         drawingData = { ...drawingData, startPoint, radius: radiusStar, points: sides };
         break;
 
       case "triangle":
-          const triangleHeight = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
-          const triangleBase = triangleHeight;  // Using the distance as base for simplicity
-          
-          const p1 = { x: startPoint.x, y: startPoint.y };  // First point (starting point)
-          const p2 = { x: x, y: y };  // Second point (end point)
-          const p3 = { x: (startPoint.x + x) / 2, y: startPoint.y - triangleHeight };  // Third point (apex)
-          
-          ctx.lineWidth = brushWidth;
-          drawTriangle(ctx, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
-          drawingData = { ...drawingData, p1, p2, p3 };
-          break;
+        drawTriangle(ctx, startPoint, { x, y });
+        drawingData = { ...drawingData, startPoint, endPoint: { x, y } };
+        break;
 
       case "arrow":
-            ctx.lineWidth = brushWidth;
-            drawArrow(ctx, startPoint.x, startPoint.y, x, y, brushWidth); // arrow size can be dynamic or fixed
-            drawingData = { ...drawingData, startPoint, endPoint: { x, y } };
-            break;  
+        drawArrow(ctx, startPoint, { x, y });
+        drawingData = { ...drawingData, startPoint, endPoint: { x, y } };
+        break;
 
       default:
         break;
@@ -363,100 +352,90 @@ const Canvas = () => {
         <h2 className="text-pink-600 text-xl font-bold mb-4">Tools</h2>
         <button
           onClick={() => setTool("brush")}
-          className={`p-3 rounded-full shadow-md transition-all ${
-            tool === "brush" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-          }`}
+          className={`p-3 rounded-full shadow-md transition-all ${tool === "brush" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+            }`}
         >
           <RiBrushFill className="text-xl" />
         </button>
-        
+
         <button
           onClick={() => setTool("eraser")}
-          className={`p-3 rounded-full shadow-md transition-all ${
-            tool === "eraser" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-          }`}
+          className={`p-3 rounded-full shadow-md transition-all ${tool === "eraser" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+            }`}
         >
           <RiEraserFill className="text-xl" />
         </button>
 
         <div className="flex gap-8">
-        <button
-          onClick={() => setTool("circle")}
-          className={`p-3 rounded-full shadow-md transition-all ${
-            tool === "circle" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-          }`}
-        >
-          <RiCircleLine className="text-xl" />
-        </button>
+          <button
+            onClick={() => setTool("circle")}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "circle" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
+          >
+            <RiCircleLine className="text-xl" />
+          </button>
 
-        <button
-          onClick={() => setTool("rectangle")}
-          className={`p-3 rounded-full shadow-md transition-all ${
-            tool === "rectangle" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-          }`}
-        >
-          <RiRectangleLine className="text-xl" />
-        </button>
-      </div>
+          <button
+            onClick={() => setTool("rectangle")}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "rectangle" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
+          >
+            <RiRectangleLine className="text-xl" />
+          </button>
+        </div>
 
-      <div className="flex gap-8 mt-2">
-        <button
-          onClick={() => setTool("triangle")}
-          className={`p-3 rounded-full shadow-md transition-all ${
-            tool === "triangle" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-          }`}
-        >
-          <RiTriangleLine className="text-xl" />
-        </button>
+        <div className="flex gap-8 mt-2">
+          <button
+            onClick={() => setTool("triangle")}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "triangle" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
+          >
+            <RiTriangleLine className="text-xl" />
+          </button>
 
-        <button
-          onClick={() => setTool("line")}
-          className={`p-3 rounded-full shadow-md transition-all ${
-            tool === "line" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-          }`}
-        >
-          <FaGripLines className="text-xl" />
-        </button>
-      </div>
+          <button
+            onClick={() => setTool("line")}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "line" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
+          >
+            <FaGripLines className="text-xl" />
+          </button>
+        </div>
 
-      <div className="flex gap-8 mt-2">
-        <button
-          onClick={() => setTool("ellipse")}
-          className={`p-3 rounded-full shadow-md transition-all ${
-            tool === "ellipse" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-          }`}
-        >
-          <TbOvalVertical className="text-xl" />
-        </button>
+        <div className="flex gap-8 mt-2">
+          <button
+            onClick={() => setTool("ellipse")}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "ellipse" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
+          >
+            <TbOvalVertical className="text-xl" />
+          </button>
 
-        <button
-          onClick={() => setTool("polygon")}
-          className={`p-3 rounded-full shadow-md transition-all ${
-            tool === "polygon" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-          }`}
-        >
-          <BiPolygon className="text-xl" />
-        </button>
-      </div>
+          <button
+            onClick={() => setTool("polygon")}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "polygon" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
+          >
+            <BiPolygon className="text-xl" />
+          </button>
+        </div>
 
-      <div className="flex gap-8 mt-2">
-        <button
-          onClick={() => setTool("star")}
-          className={`p-3 rounded-full shadow-md transition-all ${
-            tool === "star" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-          }`}
-        >
-          <BiStar className="text-xl" />
-        </button>
-        <button
-          onClick={() => setTool("arrow")}
-          className={`p-3 rounded-full shadow-md transition-all ${
-            tool === "arrow" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-          }`}
-        >
-          <FaArrowsAltH className="text-xl" />
-        </button>
-      </div>
+        <div className="flex gap-8 mt-2">
+          <button
+            onClick={() => setTool("star")}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "star" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
+          >
+            <BiStar className="text-xl" />
+          </button>
+          <button
+            onClick={() => setTool("arrow")}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "arrow" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
+          >
+            <FaArrowsAltH className="text-xl" />
+          </button>
+        </div>
 
         <button
           onClick={handleColorClick}
