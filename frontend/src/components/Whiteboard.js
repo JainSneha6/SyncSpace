@@ -16,21 +16,17 @@ import {
   RiBikeFill,
 } from "react-icons/ri";
 
-const socket = io("http://localhost:5000");
+const socket = io("https://paletteconnect.onrender.com");
 
 const Canvas = () => {
   const canvasRef = useRef(null);
-  const roomId = useParams().roomId; // Assuming roomId is passed via route params
+  const roomId = useParams().roomId; 
   const [isDrawing, setIsDrawing] = useState(false);
   const [tool, setTool] = useState("brush");
   const [startPoint, setStartPoint] = useState(null);
   const [color, setColor] = useState("#000000");
   const [brushWidth, setBrushWidth] = useState(5);
   const [sides, setSides] = useState(5);
-  const [fill, setFill] = useState(false);
-  const [textBoxes, setTextBoxes] = useState([]); // Store text boxes
-  const [currentText, setCurrentText] = useState(""); // Text being typed
-  const [selectedTextBox, setSelectedTextBox] = useState(null); // Active text box
   const [showShapeMenu, setShowShapeMenu] = useState(false);
 
   useEffect(() => {
@@ -63,78 +59,13 @@ const Canvas = () => {
     };
   }, [roomId]);
 
-  const handleCanvasClick = (e) => {
-    if (tool !== "text") return;
-
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const newTextBox = {
-      id: Date.now(),
-      x,
-      y,
-      text: "",
-      color,
-    };
-
-    setTextBoxes([...textBoxes, newTextBox]);
-    setSelectedTextBox(newTextBox.id);
-  };
-
-  const handleTextInputChange = (e) => {
-    const text = e.target.value;
-    setCurrentText(text);
-
-    setTextBoxes((boxes) =>
-      boxes.map((box) =>
-        box.id === selectedTextBox ? { ...box, text } : box
-      )
-    );
-  };
-
-  const renderTextBoxes = () => {
-    return textBoxes.map((box) => (
-      <textarea
-        key={box.id}
-        value={box.text}
-        onChange={(e) => handleTextInputChange(e, box.id)}
-        onClick={() => setSelectedTextBox(box.id)}
-        style={{
-          position: "absolute",
-          top: box.y,
-          left: box.x,
-          color: box.color,
-          border: "none",
-          resize: "none",
-          backgroundColor: "transparent",
-        }}
-      />
-    ));
-  };
-
-  const clearText = () => {
-    setTextBoxes([]); // Clear all textboxes
-    setSelectedTextBox(null); // Deselect any active textbox
-    setCurrentText(""); // Reset current text
-  };
-
-  const handleKeyDown = (e) => {
-    if (tool !== "text" || selectedTextBox === null) return;
-
-    if (e.key === "Enter") {
-      setSelectedTextBox(null); // Deselect text box on Enter
-    }
-  };
-
   const handleShapeMenuVisibility = (status) => {
     setShowShapeMenu(status);
   };
 
   const renderDrawing = (ctx, drawing) => {
     ctx.strokeStyle = drawing.color || "#000";
-    ctx.fillStyle = drawing.fillColor || "#000"; // Use fillColor for filling shapes
+    ctx.fillStyle = drawing.fillColor || "#000"; 
     ctx.lineWidth = drawing.brushWidth || 1;
 
     switch (drawing.tool) {
@@ -149,7 +80,7 @@ const Canvas = () => {
         ctx.beginPath();
         ctx.moveTo(drawing.prevX, drawing.prevY);
         ctx.lineTo(drawing.offsetX, drawing.offsetY);
-        ctx.strokeStyle = "#FFFFFF"; // Use white for eraser
+        ctx.strokeStyle = "#FFFFFF"; 
         ctx.lineWidth = drawing.brushWidth || 1;
         ctx.stroke();
         break;
@@ -158,30 +89,17 @@ const Canvas = () => {
         ctx.beginPath();
         ctx.arc(drawing.startPoint.x, drawing.startPoint.y, drawing.radius, 0, 2 * Math.PI);
         ctx.lineWidth = drawing.brushWidth || 1;
-        if (drawing.fill) {
-          ctx.fill(); // Fill the circle
-        } else {
-          ctx.stroke();
-        }
+        ctx.stroke();
         break;
 
       case "rectangle":
         ctx.lineWidth = drawing.brushWidth || 1;
-        if (drawing.fill) {
-          ctx.fillRect(
-            drawing.startPoint.x,
-            drawing.startPoint.y,
-            drawing.endPoint.x - drawing.startPoint.x,
-            drawing.endPoint.y - drawing.startPoint.y
-          );
-        } else {
           ctx.strokeRect(
             drawing.startPoint.x,
             drawing.startPoint.y,
             drawing.endPoint.x - drawing.startPoint.x,
             drawing.endPoint.y - drawing.startPoint.y
           );
-        }
         break;
 
       case "line":
@@ -204,35 +122,19 @@ const Canvas = () => {
           2 * Math.PI
         );
         ctx.lineWidth = drawing.brushWidth || 1;
-        if (drawing.fill) {
-          ctx.fill(); // Fill the ellipse
-        } else {
-          ctx.stroke();
-        }
+        ctx.stroke();
         break;
 
       case "polygon":
         ctx.lineWidth = drawing.brushWidth || 1;
-        if (drawing.fill) {
-          ctx.beginPath();
-          drawPolygon(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.sides);
-          ctx.fill(); // Fill the polygon
-        } else {
-          drawPolygon(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.sides);
-          ctx.stroke();
-        }
+        drawPolygon(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.sides);
+        ctx.stroke();
         break;
 
       case "star":
         ctx.lineWidth = drawing.brushWidth || 1;
-        if (drawing.fill) {
-          ctx.beginPath();
-          drawStar(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.points);
-          ctx.fill(); // Fill the star
-        } else {
-          drawStar(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.points);
-          ctx.stroke();
-        }
+        drawStar(ctx, drawing.startPoint.x, drawing.startPoint.y, drawing.radius, drawing.points);
+        ctx.stroke();
         break;
 
       default:
@@ -292,20 +194,16 @@ const Canvas = () => {
     const y = e.clientY - rect.top;
     const ctx = canvas.getContext("2d");
 
-    // Set brush properties
     ctx.strokeStyle = tool === "eraser" ? "#FFFFFF" : color;
-    ctx.fillStyle = color;
     ctx.lineWidth = brushWidth;
-    ctx.lineCap = "round"; // Ensures the ends of lines are rounded
-    ctx.lineJoin = "round"; // Smoothens the joins between segments
+    ctx.lineCap = "round"; 
+    ctx.lineJoin = "round"; 
 
     if (tool === "brush" || tool === "eraser") {
       ctx.beginPath();
-      ctx.moveTo(startPoint.x, startPoint.y); // Start from the last point
-      ctx.lineTo(x, y); // Draw to the current point
+      ctx.moveTo(startPoint.x, startPoint.y); 
+      ctx.lineTo(x, y);
       ctx.stroke();
-
-      // Emit the drawing event for real-time synchronization
       if (roomId) {
         socket.emit("drawing", {
           roomId,
@@ -316,11 +214,8 @@ const Canvas = () => {
           prevY: startPoint.y,
           color: tool === "eraser" ? "#FFFFFF" : color,
           brushWidth,
-          fill
         });
       }
-
-      // Update the start point for the next segment
       setStartPoint({ x, y });
     }
   };
@@ -335,7 +230,7 @@ const Canvas = () => {
     const y = e.clientY - rect.top;
 
     const ctx = canvas.getContext("2d");
-    let drawingData = { roomId, tool, color, brushWidth, fill };
+    let drawingData = { roomId, tool, color, brushWidth };
 
     switch (tool) {
       case "circle":
@@ -343,21 +238,13 @@ const Canvas = () => {
         ctx.beginPath();
         ctx.lineWidth = brushWidth;
         ctx.arc(startPoint.x, startPoint.y, radius, 0, 2 * Math.PI);
-        if (fill) {
-          ctx.fill(); // Fill the circle
-        } else {
-          ctx.stroke();
-        }
+        ctx.stroke();
         drawingData = { ...drawingData, startPoint, radius };
         break;
 
       case "rectangle":
         ctx.lineWidth = brushWidth;
-        if (fill) {
-          ctx.fillRect(startPoint.x, startPoint.y, x - startPoint.x, y - startPoint.y);
-        } else {
-          ctx.strokeRect(startPoint.x, startPoint.y, x - startPoint.x, y - startPoint.y);
-        }
+        ctx.strokeRect(startPoint.x, startPoint.y, x - startPoint.x, y - startPoint.y);
         drawingData = { ...drawingData, startPoint, endPoint: { x, y } };
         break;
 
@@ -377,13 +264,6 @@ const Canvas = () => {
         ctx.beginPath();
         ctx.ellipse((startPoint.x + x) / 2, (startPoint.y + y) / 2, radiusX, radiusY, 0, 0, 2 * Math.PI);
         ctx.stroke();
-
-        if (fill) {
-          ctx.fill();
-        } else {
-          ctx.stroke();
-        }
-
         drawingData = { ...drawingData, startPoint, endPoint: { x, y }, radiusX, radiusY };
         break;
 
@@ -391,11 +271,7 @@ const Canvas = () => {
         const radiusPoly = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
         ctx.lineWidth = brushWidth;
         drawPolygon(ctx, startPoint.x, startPoint.y, radiusPoly, sides);
-        if (fill) {
-          ctx.fill();
-        } else {
-          ctx.stroke();
-        }
+        ctx.stroke();
         drawingData = { ...drawingData, startPoint, radius: radiusPoly, sides };
         break;
 
@@ -403,11 +279,7 @@ const Canvas = () => {
         const radiusStar = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
         ctx.lineWidth = brushWidth;
         drawStar(ctx, startPoint.x, startPoint.y, radiusStar, sides);
-        if (fill) {
-          ctx.fill();
-        } else {
-          ctx.stroke();
-        }
+        ctx.stroke();
         drawingData = { ...drawingData, startPoint, radius: radiusStar, points: sides };
         break;
 
@@ -455,8 +327,8 @@ const Canvas = () => {
         
         <div
           className="relative"
-          onMouseEnter={() => handleShapeMenuVisibility(true)} // Show on enter
-          onMouseLeave={() => handleShapeMenuVisibility(false)} // Hide on leave
+          onMouseEnter={() => handleShapeMenuVisibility(true)} 
+          onMouseLeave={() => handleShapeMenuVisibility(false)} 
         >
           <button
             className={`p-3 rounded-full shadow-md transition-all ${
@@ -468,9 +340,8 @@ const Canvas = () => {
             <RiRadioButtonFill className="text-xl" />
           </button>
 
-          {/* Shape Dropdown Menu */}
           {showShapeMenu && (
-            <div className="absolute left-0 top-12 bg-white p-2 rounded-md shadow-lg flex flex-col gap-2 max-h-64 overflow-y-auto w-36">
+            <div className="absolute left-11 top-0 bg-white p-2 rounded-md shadow-lg flex flex-row gap-2 max-h-64 overflow-y-auto w-36">
               <button
                 onClick={() => setTool("circle")}
                 className="p-2 hover:bg-pink-600 hover:text-white rounded-full"
@@ -547,12 +418,6 @@ const Canvas = () => {
           className="accent-pink-600"
         />
         <button
-          onClick={clearText}
-          className="p-3 rounded-full bg-white text-pink-600 shadow-md transition-all hover:bg-pink-600 hover:text-white"
-        >
-          <RiDeleteBinLine className="text-xl" />
-        </button>
-        <button
           onClick={clearCanvas}
           className="p-3 rounded-full bg-white text-pink-600 shadow-md transition-all hover:bg-pink-600 hover:text-white"
         >
@@ -563,7 +428,6 @@ const Canvas = () => {
       <div
         className="relative bg-white rounded-lg shadow-xl overflow-hidden flex-grow m-8"
       >
-        {renderTextBoxes()}
         <canvas
           ref={canvasRef}
           width={1310}
@@ -573,18 +437,6 @@ const Canvas = () => {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
         />
-        {selectedTextBox && (
-          <input
-            type="text"
-            value={currentText}
-            onChange={handleTextInputChange}
-            className="absolute text-pink-600 text-lg"
-            style={{
-              top: textBoxes.find((box) => box.id === selectedTextBox).y,
-              left: textBoxes.find((box) => box.id === selectedTextBox).x,
-            }}
-          />
-        )}
       </div>
     </div>
   );
