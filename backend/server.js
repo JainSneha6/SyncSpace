@@ -71,10 +71,6 @@ io.on('connection', (socket) => {
       drawingrooms[roomId] = []; // Initialize room if not present
     }
 
-    // Emit existing audio streams from other users in the room
-    otherUsers.forEach(userId => {
-      io.to(userId).emit('sendAudio', { userId, signal: 'audioStream' });
-    });
 
 
 
