@@ -11,7 +11,8 @@ const Chat = ({ socketRef, roomId, height }) => {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [gifs, setGifs] = useState([]); // Store fetched GIFs
-  const [searchQuery, setSearchQuery] = useState(''); // Search query for Giphy
+  const [searchQuery, setSearchQuery] = useState(''); 
+  const [isGifPickerOpen, setIsGifPickerOpen] = useState(false);
 
   useEffect(() => {
     if (socketRef.current) {
@@ -42,6 +43,7 @@ const Chat = ({ socketRef, roomId, height }) => {
   const handleSendGif = (gifUrl) => {
     handleSendMessage(gifUrl);
     setShowGifPicker(false); // Close the GIF picker after sending
+    setIsGifPickerOpen(false); // Reset the GIF picker state
   };
 
   const fetchGifs = async (query) => {
@@ -81,18 +83,17 @@ const Chat = ({ socketRef, roomId, height }) => {
   return (
     <div className="relative h-2/3">
       <h3 className="text-lg font-semibold mb-2">Chat</h3>
-      {height=='40px' &&
-        <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">
-        {renderMessages()}
-      </div> 
-      }
-      {height=='400px' &&
-        <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2" style={{height:'600px'}}>
-        {renderMessages()}
-      </div> 
-      }
 
-      {/* Giphy Search and Results */}
+      {height=='40px' && <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">
+        {renderMessages()}
+      </div>}
+
+      {height === '400px' && (
+        <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2" style={{ height: isGifPickerOpen ? '140px' : '600px' }}>
+          {renderMessages()}
+        </div>
+      )}
+
       {showGifPicker && (
         <div className="mb-2">
           <form onSubmit={handleSearchGiphy} className="flex mb-2">
@@ -119,11 +120,16 @@ const Chat = ({ socketRef, roomId, height }) => {
             ))}
           </div>
         </div>
+      )}      
+
+      {height=='40px' && showEmojiPicker && (
+        <div className="absolute bottom-20 right-10 z-10">
+          <EmojiPicker onEmojiClick={handleEmojiClick} />
+        </div>
       )}
 
-      {/* Emoji Picker Toggle */}
-      {showEmojiPicker && (
-        <div className="absolute bottom-20 right-10 z-10">
+      {height=='400px' && showEmojiPicker && (
+        <div className="absolute top-12">
           <EmojiPicker onEmojiClick={handleEmojiClick} />
         </div>
       )}
@@ -137,17 +143,21 @@ const Chat = ({ socketRef, roomId, height }) => {
           className="border border-gray-300 p-2 rounded-lg flex-grow"
         />
 
-        {/* GIF Button with new icon */}
-        <button type="button" className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center" onClick={() => setShowGifPicker(!showGifPicker)}>
+      <button
+          type="button"
+          className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center"
+          onClick={() => {
+            setShowGifPicker(!showGifPicker);
+            setIsGifPickerOpen(!isGifPickerOpen); // Toggle the height when GIF picker opens or closes
+          }}
+        >
           GIF
         </button>
 
-        {/* Emoji Button */}
-        <button type="button" className="text-white p-2 ml-2 bg-pink-500 hover:bg-pink-600  rounded-lg transition duration-300" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+        <button type="button" className="text-white p-2 ml-2 bg-pink-500 hover:bg-pink-600 rounded-lg transition duration-300" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
           <FaSmile size={24} />
         </button>
 
-        {/* Send Button */}
         <button type="submit" className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center">
           <FaPaperPlane />
         </button>
