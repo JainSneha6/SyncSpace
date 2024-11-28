@@ -134,13 +134,13 @@ const VideoRoom = () => {
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-pink-500 via-gray-200 to-pink-200 p-6">
             <h1 className="text-5xl font-bold mb-8 text-white drop-shadow-xl">SyncSpace</h1>
             {!roomId ? (
-                <motion.div 
+                <motion.div
                     className="bg-white p-8 rounded-lg shadow-xl transform transition-transform duration-300 hover:scale-105 w-full max-w-md"
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
                 >
                     <div className="flex flex-col items-center">
-                        <button 
+                        <button
                             className="bg-pink-600 text-white py-3 px-8 rounded-full mb-4 transition duration-300 hover:bg-pink-700 shadow-lg transform hover:scale-105 flex items-center text-lg"
                             onClick={handleRoomCreate}>
                             <FaCamera className="mr-2" />
@@ -162,7 +162,7 @@ const VideoRoom = () => {
                     </div>
                 </motion.div>
             ) : (
-                <motion.div 
+                <motion.div
                     className="bg-white p-6 rounded-lg shadow-xl transform transition-transform duration-300 w-full max-w-6xl"
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
@@ -223,11 +223,11 @@ const Video = ({ peer }) => {
 
     return (
         <div className="relative">
-            <video 
-                playsInline 
-                autoPlay 
-                ref={ref} 
-                className="rounded-lg shadow-lg w-full" 
+            <video
+                playsInline
+                autoPlay
+                ref={ref}
+                className="rounded-lg shadow-lg w-full"
             />
             <div className="absolute top-0 left-0 bg-gray-700 text-white text-sm font-semibold p-1 rounded-bl-lg">Participant</div>
         </div>

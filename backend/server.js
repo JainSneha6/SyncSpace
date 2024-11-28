@@ -18,7 +18,7 @@ const PORT = 5000;
 
 const rooms = new Map();
 const drawingrooms = {};
-const roomMessages = {}; 
+const roomMessages = {};
 let drawings = [];
 
 io.on('connection', (socket) => {
@@ -33,6 +33,7 @@ io.on('connection', (socket) => {
 
     const otherUsers = rooms.get(roomID).filter(id => id !== socket.id);
     socket.emit('all users', otherUsers);
+
     if (roomMessages[roomID]) {
       socket.emit('chatHistory', roomMessages[roomID]);
     }
