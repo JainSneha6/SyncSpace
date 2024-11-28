@@ -25,7 +25,7 @@ const Canvas = () => {
 
   useEffect(() => {
 
-    socketRef.current = io("http://localhost:5000");
+    socketRef.current = io("https://paletteconnect.onrender.com");
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
