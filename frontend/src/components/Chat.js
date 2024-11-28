@@ -5,7 +5,7 @@ import EmojiPicker from 'emoji-picker-react'; // For emoji picker
 
 const GIPHY_API_KEY = 'N8zxen9SSipE8ZLfgl8SZX3t8yzlZXSS'; // Replace with your actual Giphy API Key
 
-const Chat = ({ socketRef, roomId }) => {
+const Chat = ({ socketRef, roomId, height }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [showGifPicker, setShowGifPicker] = useState(false);
@@ -81,9 +81,16 @@ const Chat = ({ socketRef, roomId }) => {
   return (
     <div className="relative h-2/3">
       <h3 className="text-lg font-semibold mb-2">Chat</h3>
-      <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">
+      {height=='40px' &&
+        <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">
         {renderMessages()}
-      </div>
+      </div> 
+      }
+      {height=='400px' &&
+        <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2" style={{height:'600px'}}>
+        {renderMessages()}
+      </div> 
+      }
 
       {/* Giphy Search and Results */}
       {showGifPicker && (

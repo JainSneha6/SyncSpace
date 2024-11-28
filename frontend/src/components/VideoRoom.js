@@ -184,10 +184,8 @@ const VideoRoom = () => {
                                 </div>
                             )}
                         </div>
-
-                        {/* Chat section on the right */}
                         <div className="w-full lg:w-1/3 mt-6 lg:mt-0 lg:ml-6"> {/* Increased the width to 1/3 of the screen */}
-                            <Chat socketRef={socketRef} roomId={roomId} />
+                            <Chat socketRef={socketRef} roomId={roomId} height={'40px'}/>
                         </div>
                     </div>
                     <div className="flex justify-center mt-6">
@@ -200,7 +198,7 @@ const VideoRoom = () => {
                             {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                         </button>
                     </div>
-                    <button onClick={goToWhiteboard} className="mt-6 bg-pink-500 text-white py-3 px-6 rounded-full transition duration-300 hover:bg-pink-600 shadow-lg transform hover:scale-105 flex items-center">
+                    <button onClick={goToWhiteboard} className="mt-6 bg-pink-600 text-white py-3 px-6 rounded-full transition duration-300 hover:bg-pink-600 shadow-lg transform hover:scale-105 flex items-center">
                         <FaPalette className="mr-2" />
                         Go to Whiteboard
                     </button>

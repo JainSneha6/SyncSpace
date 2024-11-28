@@ -5,11 +5,10 @@ import { RiBrushFill, RiCircleLine, RiDeleteBinLine, RiEraserFill, RiPaletteFill
 import { TbOvalVertical } from 'react-icons/tb';
 import { BiPolygon, BiStar } from 'react-icons/bi';
 import { FaArrowsAltH, FaGripLines } from "react-icons/fa";
-
-const socket = io("https://paletteconnect.onrender.com");
-
+import Chat from "./Chat";
 
 const Canvas = () => {
+  const socketRef = useRef(null);
   const canvasRef = useRef(null);
   const roomId = useParams().roomId; // Assuming roomId is passed via route params
   const [isDrawing, setIsDrawing] = useState(false);
@@ -21,22 +20,25 @@ const Canvas = () => {
   const colorInputRef = useRef(null);
 
   useEffect(() => {
-    if (roomId) {
-      socket.emit("joinRoom", roomId);
 
-      socket.on("loadDrawing", (drawings) => {
+    socketRef.current = io("https://paletteconnect.onrender.com");
+
+    if (roomId) {
+      socketRef.current.emit("joinRoom", roomId);
+
+      socketRef.current.on("loadDrawing", (drawings) => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
         drawings.forEach((drawing) => renderDrawing(ctx, drawing));
       });
 
-      socket.on("drawing", (data) => {
+      socketRef.current.on("drawing", (data) => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
         renderDrawing(ctx, data);
       });
 
-      socket.on("clearBoard", () => {
+      socketRef.current.on("clearBoard", () => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -44,9 +46,9 @@ const Canvas = () => {
     }
 
     return () => {
-      socket.off("loadDrawing");
-      socket.off("drawing");
-      socket.off("clearBoard");
+      socketRef.current.off("loadDrawing");
+      socketRef.current.off("drawing");
+      socketRef.current.off("clearBoard");
     };
   }, [roomId]);
 
@@ -238,7 +240,7 @@ const Canvas = () => {
 
       // Emit the drawing event for real-time synchronization
       if (roomId) {
-        socket.emit("drawing", {
+        socketRef.current.emit("drawing", {
           roomId,
           tool: "brush",
           offsetX: x,
@@ -333,7 +335,7 @@ const Canvas = () => {
         break;
     }
 
-    socket.emit("drawing", drawingData);
+    socketRef.current.emit("drawing", drawingData);
 
     setIsDrawing(false);
     setStartPoint(null);
@@ -343,7 +345,7 @@ const Canvas = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    socket.emit("clearBoard", roomId);
+    socketRef.current.emit("clearBoard", roomId);
   };
 
   return (
@@ -478,6 +480,9 @@ const Canvas = () => {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
         />
+      </div>
+      <div className="w-1/3 bg-white shadow-xl rounded-l-lg p-4">
+        <Chat socketRef={socketRef} roomId={roomId} height={'400px'}/>
       </div>
     </div>
   );
