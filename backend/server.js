@@ -72,9 +72,8 @@ io.on('connection', (socket) => {
     }
 
     // Emit existing audio streams from other users in the room
-    const otherUsers = rooms.get(roomId)?.filter((id) => id !== socket.id) || [];
-    otherUsers.forEach((userId) => {
-      io.to(userId).emit('requestAudio', socket.id);
+    otherUsers.forEach(userId => {
+      io.to(userId).emit('sendAudio', { userId, signal: 'audioStream' });
     });
 
 
@@ -86,9 +85,12 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle microphone audio stream
-  socket.on('sendAudio', ({ roomId, audioData }) => {
-    socket.to(roomId).emit('receiveAudio', { audioData, userId: socket.id });
+  // Broadcast the audio stream signal to other users
+  socket.on('sending audio', (payload) => {
+    io.to(payload.roomId).emit('receiveAudio', {
+      audioSignal: payload.audioSignal,
+      userId: socket.id
+    });
   });
 
 
@@ -169,4 +171,3 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-

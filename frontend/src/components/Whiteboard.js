@@ -30,12 +30,10 @@ const Canvas = () => {
       .getUserMedia({ audio: true })
       .then((stream) => {
         streamRef.current = stream;
-        console.log("Microphone access granted.");
       })
       .catch((error) => {
         console.error("Error accessing microphone:", error);
       });
-
 
     if (roomId) {
       socketRef.current.emit("joinRoom", roomId);
@@ -381,21 +379,12 @@ const Canvas = () => {
 
 
   const toggleMic = () => {
-    if (streamRef.current) {
-      const audioTracks = streamRef.current.getAudioTracks();
-      if (audioTracks.length > 0) {
-        const isEnabled = audioTracks[0].enabled;
-        audioTracks[0].enabled = !isEnabled;
-        setIsMicOn(!isEnabled);
-        console.log(`Microphone ${isEnabled ? "muted" : "unmuted"}.`);
-      } else {
-        console.warn("No audio tracks found in the stream.");
-      }
-    } else {
-      console.error("Audio stream is not initialized.");
-    }
+    const audioTracks = streamRef.current.getAudioTracks();
+    audioTracks.forEach(track => {
+      track.enabled = !track.enabled;
+    });
+    setIsMicOn(prev => !prev);
   };
-
 
   const createStickyNote = (x, y) => {
     const note = {
