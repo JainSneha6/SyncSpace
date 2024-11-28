@@ -19,21 +19,12 @@ const Canvas = () => {
   const [brushWidth, setBrushWidth] = useState(5);
   const [sides, setSides] = useState(5);
   const colorInputRef = useRef(null);
-  const streamRef = useRef();
-  const [isMicOn, setIsMicOn] = useState(true);
   const [stickyNotes, setStickyNotes] = useState([]);
 
   useEffect(() => {
 
     socketRef.current = io("https://paletteconnect.onrender.com");
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then((stream) => {
-        streamRef.current = stream;
-      })
-      .catch((error) => {
-        console.error("Error accessing microphone:", error);
-      });
+
 
     if (roomId) {
       socketRef.current.emit("joinRoom", roomId);
@@ -97,6 +88,16 @@ const Canvas = () => {
         ctx.lineWidth = drawing.brushWidth || 1;
         ctx.stroke();
         break;
+
+      case "eraser":
+        ctx.strokeStyle = "#FFFFFF"; // Assuming the background is white
+        ctx.lineWidth = drawing.brushWidth || 10; // Larger width for erasing
+        ctx.beginPath();
+        ctx.moveTo(drawing.prevX, drawing.prevY);
+        ctx.lineTo(drawing.offsetX, drawing.offsetY);
+        ctx.stroke();
+        break;
+
 
       case "rectangle":
         ctx.lineWidth = drawing.brushWidth || 1;
@@ -285,6 +286,29 @@ const Canvas = () => {
       // Update the start point for the next segment
       setStartPoint({ x, y });
     }
+    else if (tool === "eraser") {
+      ctx.strokeStyle = "#FFFFFF"; // Erase with the background color
+      ctx.lineWidth = brushWidth;
+      ctx.beginPath();
+      ctx.moveTo(startPoint.x, startPoint.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+
+      if (roomId) {
+        socketRef.current.emit("drawing", {
+          roomId,
+          tool: "eraser",
+          offsetX: x,
+          offsetY: y,
+          prevX: startPoint.x,
+          prevY: startPoint.y,
+          brushWidth,
+        });
+      }
+
+      setStartPoint({ x, y });
+    }
+
   };
 
   const handleMouseUp = (e) => {
@@ -378,13 +402,7 @@ const Canvas = () => {
   };
 
 
-  const toggleMic = () => {
-    const audioTracks = streamRef.current.getAudioTracks();
-    audioTracks.forEach(track => {
-      track.enabled = !track.enabled;
-    });
-    setIsMicOn(prev => !prev);
-  };
+
 
   const createStickyNote = (x, y) => {
     const note = {
@@ -574,14 +592,7 @@ const Canvas = () => {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
         />
-        <div className="controls">
-          {/* Other tools and controls */}
 
-          {/* Microphone toggle */}
-          <button onClick={toggleMic} className="mic-toggle">
-            {isMicOn ? <FaMicrophone /> : <FaMicrophoneSlash />}
-          </button>
-        </div>
         {stickyNotes.map((note) => (
           <StickyNote
             key={note.id}
