@@ -19,6 +19,7 @@ const PORT = 5000;
 const rooms = new Map();
 const drawingrooms = {};
 const roomMessages = {};
+const stickyNotesPerRoom = {};
 let stickyNotes = [];
 
 io.on('connection', (socket) => {
@@ -70,12 +71,28 @@ io.on('connection', (socket) => {
       drawingrooms[roomId] = []; // Initialize room if not present
     }
 
+    // Emit existing audio streams from other users in the room
+    otherUsers.forEach(userId => {
+      io.to(userId).emit('sendAudio', { userId, signal: 'audioStream' });
+    });
+
+
+
     if (stickyNotesPerRoom[roomId]) {
       socket.emit('syncStickyNotes', stickyNotesPerRoom[roomId]);
     } else {
       stickyNotesPerRoom[roomId] = []; // Initialize if not present
     }
   });
+
+  // Broadcast the audio stream signal to other users
+  socket.on('sending audio', (payload) => {
+    io.to(payload.roomId).emit('receiveAudio', {
+      audioSignal: payload.audioSignal,
+      userId: socket.id
+    });
+  });
+
 
   socket.on('drawing', (data) => {
     const { roomId, ...drawingData } = data;
@@ -94,6 +111,40 @@ io.on('connection', (socket) => {
     }
     io.to(roomId).emit("clearBoard"); // Notify all users in the room
   });
+
+  socket.on('createStickyNote', (noteData) => {
+    const { roomId, note } = noteData;
+
+    // If the room doesn't have sticky notes, initialize it
+    if (!stickyNotesPerRoom[roomId]) {
+      stickyNotesPerRoom[roomId] = [];
+    }
+
+    // Add the new sticky note to the room
+    stickyNotesPerRoom[roomId].push(note);
+
+    // Broadcast the new sticky note to all users in the room
+    io.to(roomId).emit('syncStickyNotes', stickyNotesPerRoom[roomId]);
+  });
+
+
+  // Handle sticky note updates (e.g., moving or editing a note)
+  socket.on('updateStickyNote', ({ roomId, note }) => {
+    const notesInRoom = stickyNotesPerRoom[roomId] || [];
+    const index = notesInRoom.findIndex(n => n.id === note.id);
+    if (index !== -1) {
+      notesInRoom[index] = note; // Update the sticky note
+      io.to(roomId).emit('syncStickyNotes', notesInRoom);
+    }
+  });
+
+  socket.on('deleteStickyNote', ({ roomId, noteId }) => {
+    const notesInRoom = stickyNotesPerRoom[roomId] || [];
+    const updatedNotes = notesInRoom.filter(note => note.id !== noteId);
+    stickyNotesPerRoom[roomId] = updatedNotes;
+    io.to(roomId).emit('syncStickyNotes', updatedNotes);
+  });
+
 
 
   socket.on('screenSignal', (payload) => {

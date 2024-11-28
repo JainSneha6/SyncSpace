@@ -25,8 +25,7 @@ const Canvas = () => {
 
   useEffect(() => {
 
-    socketRef.current = io("https://paletteconnect.onrender.com");
-
+    socketRef.current = io("http://localhost:5000");
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
@@ -60,6 +59,15 @@ const Canvas = () => {
       socketRef.current.on("syncStickyNotes", (notes) => {
         setStickyNotes(notes);
       });
+
+      socketRef.current.on("syncDeleteStickyNote", (noteId) => {
+        // Remove the note with the specified ID
+        setStickyNotes((prevNotes) => prevNotes.filter((note) => note.id !== noteId));
+      });
+
+      socketRef.current.on("createStickyNote", (note) => {
+        setStickyNotes((prevNotes) => [...prevNotes, note]);
+      });
     }
 
     return () => {
@@ -67,6 +75,7 @@ const Canvas = () => {
       socketRef.current.off("drawing");
       socketRef.current.off("clearBoard");
       socketRef.current.off("syncStickyNotes");
+      socketRef.current.off("createStickyNote");
     };
   }, [roomId]);
 
@@ -368,6 +377,7 @@ const Canvas = () => {
     socketRef.current.emit("clearBoard", roomId);
   };
 
+
   const toggleMic = () => {
     const audioTracks = streamRef.current.getAudioTracks();
     audioTracks.forEach(track => {
@@ -377,29 +387,50 @@ const Canvas = () => {
   };
 
   const createStickyNote = (x, y) => {
-    const newNote = {
-      id: Date.now(),
+    const note = {
+      id: Date.now(), // You can use a better unique ID generation strategy
       x,
       y,
-      color: '#FFEB3B', // Default sticky note color
-      text: 'New Sticky Note',
+      text: "New sticky note",
+      color: "#FFF9C4", // You can customize the color
     };
-    setStickyNotes((prev) => [...prev, newNote]);
-    socketRef.current.emit('createStickyNote', newNote); // Broadcast sticky note creation
+
+    // Emit the sticky note creation to the backend
+    socketRef.current.emit("createStickyNote", {
+      roomId,
+      note,
+    });
+
+    // Temporarily add the sticky note locally (this will be synced later)
+    setStickyNotes((prevNotes) => [...prevNotes, note]);
   };
-  
+
   const updateStickyNote = (updatedNote) => {
-    setStickyNotes((prev) =>
-      prev.map((note) => (note.id === updatedNote.id ? updatedNote : note))
+    // Emit the updated sticky note to the backend
+    socketRef.current.emit("updateStickyNote", {
+      roomId,
+      note: updatedNote,
+    });
+
+    // Update the sticky notes locally
+    setStickyNotes((prevNotes) =>
+      prevNotes.map((note) =>
+        note.id === updatedNote.id ? updatedNote : note
+      )
     );
-    socketRef.current.emit('updateStickyNote', updatedNote); // Broadcast sticky note update
   };
-  
-  const deleteStickyNote = (id) => {
-    setStickyNotes((prev) => prev.filter((note) => note.id !== id));
-    socketRef.current.emit('deleteStickyNote', id); // Broadcast sticky note deletion
+
+  const deleteStickyNote = (noteId) => {
+    // Emit the deletion event to the backend
+    socketRef.current.emit("deleteStickyNote", {
+      roomId,
+      noteId,
+    });
+
+    // Remove the note locally (optimistic update)
+    setStickyNotes((prevNotes) => prevNotes.filter((note) => note.id !== noteId));
   };
-  
+
   const handleCreateNewNote = (x, y) => {
     createStickyNote(x, y); // Create a new note with an offset from the clicked note
   };
@@ -543,15 +574,23 @@ const Canvas = () => {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
         />
+        <div className="controls">
+          {/* Other tools and controls */}
+
+          {/* Microphone toggle */}
+          <button onClick={toggleMic} className="mic-toggle">
+            {isMicOn ? <FaMicrophone /> : <FaMicrophoneSlash />}
+          </button>
+        </div>
         {stickyNotes.map((note) => (
-        <StickyNote
-          key={note.id}
-          noteData={note}
-          onUpdateNote={updateStickyNote}
-          onDeleteNote={deleteStickyNote}
-          onCreateNewNote={handleCreateNewNote} 
-        />
-      ))}
+          <StickyNote
+            key={note.id}
+            noteData={note}
+            onUpdateNote={updateStickyNote}
+            onDeleteNote={deleteStickyNote}
+            onCreateNewNote={handleCreateNewNote}
+          />
+        ))}
 
       </div>
       <div className="w-1/3 bg-white shadow-xl rounded-l-lg p-4">
