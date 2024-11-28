@@ -186,7 +186,7 @@ const VideoRoom = () => {
                         </div>
 
                         {/* Chat section on the right */}
-                        <div className="w-1/3 ml-6"> {/* Increased the width to 1/3 of the screen */}
+                        <div className="w-full lg:w-1/3 mt-6 lg:mt-0 lg:ml-6"> {/* Increased the width to 1/3 of the screen */}
                             <Chat socketRef={socketRef} roomId={roomId} />
                         </div>
                     </div>
