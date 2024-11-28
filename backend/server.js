@@ -37,23 +37,6 @@ io.on('connection', (socket) => {
     if (roomMessages[roomID]) {
       socket.emit('chatHistory', roomMessages[roomID]);
     }
-
-    socket.on("createStickyNote", (newNote) => {
-      stickyNotes.push(newNote);
-      io.emit("syncStickyNotes", stickyNotes);
-    });
-
-    socket.on("updateStickyNote", (updatedNote) => {
-      stickyNotes = stickyNotes.map((note) =>
-        note.id === updatedNote.id ? updatedNote : note
-      );
-      io.emit("syncStickyNotes", stickyNotes);
-    });
-
-    socket.on("deleteStickyNote", (noteId) => {
-      stickyNotes = stickyNotes.filter((note) => note.id !== noteId);
-      io.emit("syncStickyNotes", stickyNotes);
-    });
   });
 
   socket.on('sending signal', (payload) => {
@@ -79,11 +62,18 @@ io.on('connection', (socket) => {
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
     console.log(`User joined room: ${roomId}`);
+    io.to(roomId).emit('syncStickyNotes', stickyNotes);
 
     if (drawingrooms[roomId]) {
       socket.emit("loadDrawing", drawingrooms[roomId]);
     } else {
       drawingrooms[roomId] = []; // Initialize room if not present
+    }
+
+    if (stickyNotesPerRoom[roomId]) {
+      socket.emit('syncStickyNotes', stickyNotesPerRoom[roomId]);
+    } else {
+      stickyNotesPerRoom[roomId] = []; // Initialize if not present
     }
   });
 

@@ -1,64 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 
-const StickyNote = ({ noteData, onUpdateNote, onDeleteNote }) => {
-  const [isEditing, setIsEditing] = useState(false);
+const StickyNote = ({ noteData, onUpdateNote, onDeleteNote, onCreateNewNote }) => {
   const [text, setText] = useState(noteData.text);
+  const [position, setPosition] = useState({ x: noteData.x, y: noteData.y });
+
+  useEffect(() => {
+    setPosition({ x: noteData.x, y: noteData.y });
+    setText(noteData.text);
+  }, [noteData]);
+
+  const handleDrag = (e) => {
+    const offsetX = e.clientX - position.x;
+    const offsetY = e.clientY - position.y;
+    
+    const newPosition = {
+      x: e.clientX - offsetX,
+      y: e.clientY - offsetY
+    };
+    
+    setPosition(newPosition);
+
+    onUpdateNote({
+      ...noteData,
+      x: newPosition.x,
+      y: newPosition.y
+    });
+  };
+
+  const handleDragEnd = (e) => {
+    onUpdateNote({
+      ...noteData,
+      x: position.x,
+      y: position.y
+    });
+  };
 
   const handleTextChange = (e) => {
     setText(e.target.value);
-  };
-
-  const handleBlur = () => {
-    setIsEditing(false);
-    onUpdateNote({ ...noteData, text });
+    onUpdateNote({
+      ...noteData,
+      text: e.target.value
+    });
   };
 
   return (
     <div
+      className="absolute p-4 rounded-lg border shadow-md bg-yellow-200 cursor-move"
       style={{
-        position: 'absolute',
-        top: noteData.y,
-        left: noteData.x,
-        backgroundColor: noteData.color,
-        padding: '10px',
-        borderRadius: '5px',
-        boxShadow: '0 2px 5px rgba(0, 0, 0, 0.2)',
-        cursor: 'pointer',
-        width: '150px',
+        top: `${position.y}px`,
+        left: `${position.x}px`,
+        width: '150px'
       }}
-      onClick={() => setIsEditing(true)}
+      draggable
+      onDrag={handleDrag}
+      onDragEnd={handleDragEnd}
     >
-      {isEditing ? (
-        <textarea
-          value={text}
-          onChange={handleTextChange}
-          onBlur={handleBlur}
-          autoFocus
-          style={{
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            outline: 'none',
-            resize: 'none',
-          }}
-        />
-      ) : (
-        <p>{text}</p>
-      )}
+      <textarea
+        value={text}
+        onChange={handleTextChange}
+        className="w-full h-full p-2 bg-transparent border-none focus:outline-none"
+        placeholder="Type your note here..."
+      />
       <button
         onClick={() => onDeleteNote(noteData.id)}
-        style={{
-          position: 'absolute',
-          top: '5px',
-          right: '5px',
-          background: 'transparent',
-          border: 'none',
-          color: 'red',
-          fontSize: '12px',
-          cursor: 'pointer',
-        }}
+        className="absolute top-1 right-1 text-red-600"
       >
-        X
+        &times;
       </button>
     </div>
   );

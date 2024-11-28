@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
-import { RiBrushFill, RiCircleLine, RiDeleteBinLine, RiEraserFill, RiPaletteFill, RiRectangleLine, RiShapesFill, RiTriangleFill, RiTriangleLine } from "react-icons/ri";
+import { RiBrushFill, RiCircleLine, RiDeleteBinLine, RiEraserFill, RiPaletteFill, RiRectangleLine, RiShapesFill, RiStickyNoteFill, RiTriangleFill, RiTriangleLine } from "react-icons/ri";
 import { TbOvalVertical } from 'react-icons/tb';
 import { BiPolygon, BiStar } from 'react-icons/bi';
 import { FaArrowsAltH, FaGripLines, FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
@@ -22,7 +22,6 @@ const Canvas = () => {
   const streamRef = useRef();
   const [isMicOn, setIsMicOn] = useState(true);
   const [stickyNotes, setStickyNotes] = useState([]);
-  const [currentNote, setCurrentNote] = useState(null);
 
   useEffect(() => {
 
@@ -57,7 +56,6 @@ const Canvas = () => {
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       });
-
 
       socketRef.current.on("syncStickyNotes", (notes) => {
         setStickyNotes(notes);
@@ -235,6 +233,9 @@ const Canvas = () => {
       ctx.moveTo(x, y);
       ctx.lineWidth = brushWidth;
     }
+    else if (tool === "stickyNote") {
+      createStickyNote(x, y); // Create sticky note at clicked position
+    }
   };
 
   const handleMouseMove = (e) => {
@@ -276,7 +277,6 @@ const Canvas = () => {
       setStartPoint({ x, y });
     }
   };
-
 
   const handleMouseUp = (e) => {
     if (!isDrawing) return;
@@ -381,34 +381,27 @@ const Canvas = () => {
       id: Date.now(),
       x,
       y,
-      color: "#FFEB3B", // Default sticky note color
-      text: "New Sticky Note",
+      color: '#FFEB3B', // Default sticky note color
+      text: 'New Sticky Note',
     };
     setStickyNotes((prev) => [...prev, newNote]);
-    socketRef.current.emit("createStickyNote", newNote);
+    socketRef.current.emit('createStickyNote', newNote); // Broadcast sticky note creation
   };
-
+  
   const updateStickyNote = (updatedNote) => {
     setStickyNotes((prev) =>
-      prev.map((note) =>
-        note.id === updatedNote.id ? updatedNote : note
-      )
+      prev.map((note) => (note.id === updatedNote.id ? updatedNote : note))
     );
-    socketRef.current.emit("updateStickyNote", updatedNote);
+    socketRef.current.emit('updateStickyNote', updatedNote); // Broadcast sticky note update
   };
-
+  
   const deleteStickyNote = (id) => {
     setStickyNotes((prev) => prev.filter((note) => note.id !== id));
-    socketRef.current.emit("deleteStickyNote", id);
+    socketRef.current.emit('deleteStickyNote', id); // Broadcast sticky note deletion
   };
-
-  const handleCanvasClick = (e) => {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    createStickyNote(x, y);
+  
+  const handleCreateNewNote = (x, y) => {
+    createStickyNote(x, y); // Create a new note with an offset from the clicked note
   };
 
   return (
@@ -526,6 +519,13 @@ const Canvas = () => {
         />
 
         <button
+          onClick={() => setTool("stickyNote")}
+          className={`p-3 rounded-full shadow-md transition-all ${tool === "stickyNote" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"}`}
+        >
+          <RiStickyNoteFill className="text-xl" />
+        </button>
+
+        <button
           onClick={clearCanvas}
           className="p-3 rounded-full bg-white text-pink-600 shadow-md transition-all hover:bg-pink-600 hover:text-white"
         >
@@ -533,7 +533,7 @@ const Canvas = () => {
         </button>
       </div>
 
-      <div className="relative bg-white rounded-lg shadow-xl overflow-hidden flex-grow m-8" onClick={handleCanvasClick}>
+      <div className="relative bg-white rounded-lg shadow-xl overflow-hidden flex-grow m-8" >
         <canvas
           ref={canvasRef}
           width={1310}
@@ -544,21 +544,23 @@ const Canvas = () => {
           onMouseUp={handleMouseUp}
         />
         {stickyNotes.map((note) => (
-          <StickyNote
-            key={note.id}
-            noteData={note}
-            onUpdateNote={updateStickyNote}
-            onDeleteNote={deleteStickyNote}
-          />
-        ))}
+        <StickyNote
+          key={note.id}
+          noteData={note}
+          onUpdateNote={updateStickyNote}
+          onDeleteNote={deleteStickyNote}
+          onCreateNewNote={handleCreateNewNote} 
+        />
+      ))}
+
       </div>
       <div className="w-1/3 bg-white shadow-xl rounded-l-lg p-4">
         <Chat socketRef={socketRef} roomId={roomId} height={'400px'} />
       </div>
-      <button onClick={toggleMic} className="bg-pink-600 text-white py-3 px-6 rounded-full mr-4 transition duration-300 hover:bg-pink-700 shadow-lg transform hover:scale-105 flex items-center">
+      {/* <button onClick={toggleMic} className="bg-pink-600 text-white py-3 px-6 rounded-full mr-4 transition duration-300 hover:bg-pink-700 shadow-lg transform hover:scale-105 flex items-center">
         {isMicOn ? <FaMicrophone className="mr-2" /> : <FaMicrophoneSlash className="mr-2" />}
         {isMicOn ? "Mute" : "Unmute"}
-      </button>
+      </button> */}
     </div>
   );
 };
