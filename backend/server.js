@@ -18,6 +18,7 @@ const PORT = 5000;
 
 const rooms = new Map();
 const drawingrooms = {};
+const roomMessages = {}; 
 let drawings = [];
 
 io.on('connection', (socket) => {
