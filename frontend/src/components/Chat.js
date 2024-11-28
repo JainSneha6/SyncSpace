@@ -11,7 +11,7 @@ const Chat = ({ socketRef, roomId, height }) => {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [gifs, setGifs] = useState([]); // Store fetched GIFs
-  const [searchQuery, setSearchQuery] = useState(''); 
+  const [searchQuery, setSearchQuery] = useState('');
   const [isGifPickerOpen, setIsGifPickerOpen] = useState(false);
 
   useEffect(() => {
@@ -84,7 +84,7 @@ const Chat = ({ socketRef, roomId, height }) => {
     <div className="relative h-2/3">
       <h3 className="text-lg font-semibold mb-2">Chat</h3>
 
-      {height=='40px' && <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">
+      {height == '40px' && <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">
         {renderMessages()}
       </div>}
 
@@ -120,16 +120,16 @@ const Chat = ({ socketRef, roomId, height }) => {
             ))}
           </div>
         </div>
-      )}      
+      )}
 
-      {height=='40px' && showEmojiPicker && (
-        <div className="absolute bottom-20 right-10 z-10">
+      {height == '40px' && showEmojiPicker && (
+        <div className="bottom-20 right-10 z-10">
           <EmojiPicker onEmojiClick={handleEmojiClick} />
         </div>
       )}
 
-      {height=='400px' && showEmojiPicker && (
-        <div className="absolute top-12">
+      {height == '400px' && showEmojiPicker && (
+        <div className="absolute " style={{ top: "180px" }}>
           <EmojiPicker onEmojiClick={handleEmojiClick} />
         </div>
       )}
@@ -143,7 +143,7 @@ const Chat = ({ socketRef, roomId, height }) => {
           className="border border-gray-300 p-2 rounded-lg flex-grow"
         />
 
-      <button
+        <button
           type="button"
           className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center"
           onClick={() => {

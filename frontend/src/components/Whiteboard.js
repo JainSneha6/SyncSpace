@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 import { RiBrushFill, RiCircleLine, RiDeleteBinLine, RiEraserFill, RiPaletteFill, RiRectangleLine, RiShapesFill, RiTriangleFill, RiTriangleLine } from "react-icons/ri";
 import { TbOvalVertical } from 'react-icons/tb';
 import { BiPolygon, BiStar } from 'react-icons/bi';
-import { FaArrowsAltH, FaGripLines } from "react-icons/fa";
+import { FaArrowsAltH, FaGripLines, FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
 import Chat from "./Chat";
 
 const Canvas = () => {
@@ -18,10 +18,21 @@ const Canvas = () => {
   const [brushWidth, setBrushWidth] = useState(5);
   const [sides, setSides] = useState(5);
   const colorInputRef = useRef(null);
+  const streamRef = useRef();
+  const [isMicOn, setIsMicOn] = useState(true);
 
   useEffect(() => {
 
     socketRef.current = io("https://paletteconnect.onrender.com");
+
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        streamRef.current = stream;
+      })
+      .catch((error) => {
+        console.error("Error accessing microphone:", error);
+      });
 
     if (roomId) {
       socketRef.current.emit("joinRoom", roomId);
@@ -348,6 +359,14 @@ const Canvas = () => {
     socketRef.current.emit("clearBoard", roomId);
   };
 
+  const toggleMic = () => {
+    const audioTracks = streamRef.current.getAudioTracks();
+    audioTracks.forEach(track => {
+      track.enabled = !track.enabled;
+    });
+    setIsMicOn(prev => !prev);
+  };
+
   return (
     <div className="min-h-screen bg-pink-600 flex">
       <div className="bg-white shadow-xl rounded-r-lg p-4 flex flex-col gap-4">
@@ -482,8 +501,12 @@ const Canvas = () => {
         />
       </div>
       <div className="w-1/3 bg-white shadow-xl rounded-l-lg p-4">
-        <Chat socketRef={socketRef} roomId={roomId} height={'400px'}/>
+        <Chat socketRef={socketRef} roomId={roomId} height={'400px'} />
       </div>
+      <button onClick={toggleMic} className="bg-pink-600 text-white py-3 px-6 rounded-full mr-4 transition duration-300 hover:bg-pink-700 shadow-lg transform hover:scale-105 flex items-center">
+        {isMicOn ? <FaMicrophone className="mr-2" /> : <FaMicrophoneSlash className="mr-2" />}
+        {isMicOn ? "Mute" : "Unmute"}
+      </button>
     </div>
   );
 };
