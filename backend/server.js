@@ -19,7 +19,7 @@ const PORT = 5000;
 const rooms = new Map();
 const drawingrooms = {};
 const roomMessages = {};
-let drawings = [];
+let stickyNotes = [];
 
 io.on('connection', (socket) => {
   console.log('A user connected');
@@ -38,7 +38,22 @@ io.on('connection', (socket) => {
       socket.emit('chatHistory', roomMessages[roomID]);
     }
 
+    socket.on("createStickyNote", (newNote) => {
+      stickyNotes.push(newNote);
+      io.emit("syncStickyNotes", stickyNotes);
+    });
 
+    socket.on("updateStickyNote", (updatedNote) => {
+      stickyNotes = stickyNotes.map((note) =>
+        note.id === updatedNote.id ? updatedNote : note
+      );
+      io.emit("syncStickyNotes", stickyNotes);
+    });
+
+    socket.on("deleteStickyNote", (noteId) => {
+      stickyNotes = stickyNotes.filter((note) => note.id !== noteId);
+      io.emit("syncStickyNotes", stickyNotes);
+    });
   });
 
   socket.on('sending signal', (payload) => {
