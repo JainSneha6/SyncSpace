@@ -81,19 +81,27 @@ const Chat = ({ socketRef, roomId, height }) => {
   };
 
   return (
-    <div className="relative h-2/3">
-      <h3 className="text-lg font-semibold mb-2">Chat</h3>
-
-      {height == '40px' && <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2">
-        {renderMessages()}
-      </div>}
-
-      {height === '400px' && (
-        <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2" style={{ height: isGifPickerOpen ? '140px' : '600px' }}>
+    <div className="relative h-full">
+      {/* Chat Title */}
+      <h3 className="text-lg font-semibold mb-2 text-[#2F4550]">Chat</h3>
+  
+      {/* Conditional Rendering for Meeting Chat (Height: 40px) */}
+      {height === '40px' && (
+        <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2 flex flex-col">
+          {/* Messages */}
           {renderMessages()}
         </div>
       )}
-
+  
+      {/* Conditional Rendering for Whiteboard Chat (Height: 400px) */}
+      {height === '400px' && (
+        <div className="h-40 border border-gray-300 rounded-lg overflow-y-auto p-2 mb-2" style={{ height: isGifPickerOpen ? '140px' : '600px' }}>
+          {/* Messages */}
+          {renderMessages()}
+        </div>
+      )}
+  
+      {/* GIF Picker (Only visible when toggled) */}
       {showGifPicker && (
         <div className="mb-2">
           <form onSubmit={handleSearchGiphy} className="flex mb-2">
@@ -104,11 +112,13 @@ const Chat = ({ socketRef, roomId, height }) => {
               placeholder="Search GIFs..."
               className="border border-gray-300 p-2 rounded-lg flex-grow"
             />
-            <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-blue-600 flex items-center">
+            <button type="submit" className="bg-[#2F4550] text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-[#2F4550] flex items-center">
               <FaSearch />
             </button>
           </form>
-          <div className="grid grid-cols-3 gap-2">
+  
+          {/* Display GIFs */}
+          <div className="grid grid-cols-3 gap-2 mb-2">
             {gifs.map((gif) => (
               <img
                 key={gif.id}
@@ -121,49 +131,63 @@ const Chat = ({ socketRef, roomId, height }) => {
           </div>
         </div>
       )}
-
-      {height == '40px' && showEmojiPicker && (
-        <div className="bottom-20 right-10 z-10">
+  
+      {/* Emoji Picker (Visible based on the height condition) */}
+      {height === '40px' && showEmojiPicker && (
+        <div className="absolute bottom-20 right-10 z-10">
           <EmojiPicker onEmojiClick={handleEmojiClick} />
         </div>
       )}
-
-      {height == '400px' && showEmojiPicker && (
-        <div className="absolute " style={{ top: "180px" }}>
+  
+      {height === '400px' && showEmojiPicker && (
+        <div className="absolute" style={{ top: '180px' }}>
           <EmojiPicker onEmojiClick={handleEmojiClick} />
         </div>
       )}
-
-      <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(newMessage); }} className="flex">
+  
+      {/* Message Input and Controls */}
+      <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(newMessage); }} className="flex items-center mt-4">
+        {/* Message Input */}
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Type a message..."
-          className="border border-gray-300 p-2 rounded-lg flex-grow"
+          className="border border-gray-300 p-2 rounded-lg flex-grow focus:outline-none focus:ring-2 focus:ring-[#CE4760]"
         />
-
+  
+        {/* GIF Button */}
         <button
           type="button"
-          className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center"
+          className="bg-[#CE4760] text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-[#2F4550] flex items-center"
           onClick={() => {
             setShowGifPicker(!showGifPicker);
             setIsGifPickerOpen(!isGifPickerOpen); // Toggle the height when GIF picker opens or closes
           }}
         >
+          <FaImage className="inline-block mr-2" />
           GIF
         </button>
-
-        <button type="button" className="text-white p-2 ml-2 bg-pink-500 hover:bg-pink-600 rounded-lg transition duration-300" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+  
+        {/* Emoji Button */}
+        <button
+          type="button"
+          className="text-white p-2 ml-2 bg-[#CE4760] hover:bg-[#2F4550] rounded-lg transition duration-300"
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+        >
           <FaSmile size={24} />
         </button>
-
-        <button type="submit" className="bg-pink-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-pink-600 flex items-center">
+  
+        {/* Send Button */}
+        <button
+          type="submit"
+          className="bg-[#CE4760] text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-[#2F4550] flex items-center"
+        >
           <FaPaperPlane />
         </button>
       </form>
     </div>
   );
-};
+};  
 
 export default Chat;
