@@ -520,8 +520,6 @@ const Canvas = () => {
     return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255, 255];
   };
   
-  
-
   return (
     <div className="min-h-screen bg-pink-600 flex">
       <div className="bg-white shadow-xl rounded-r-lg p-4 flex flex-col gap-4">
@@ -683,10 +681,6 @@ const Canvas = () => {
       <div className="w-1/3 bg-white shadow-xl rounded-l-lg p-4">
         <Chat socketRef={socketRef} roomId={roomId} height={'400px'} />
       </div>
-      {/* <button onClick={toggleMic} className="bg-pink-600 text-white py-3 px-6 rounded-full mr-4 transition duration-300 hover:bg-pink-700 shadow-lg transform hover:scale-105 flex items-center">
-        {isMicOn ? <FaMicrophone className="mr-2" /> : <FaMicrophoneSlash className="mr-2" />}
-        {isMicOn ? "Mute" : "Unmute"}
-      </button> */}
     </div>
   );
 };
