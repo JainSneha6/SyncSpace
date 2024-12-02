@@ -110,28 +110,10 @@ const AudioRoom = () => {
 
     const handleRoomJoin = (e) => {
         e.preventDefault();
-        // Room ID is already set in state
-    };
-
-    const goToWhiteboard = () => {
-        navigate(`/whiteboard/${roomId}`);
     };
 
     return (
         <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
-            <header className="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center mb-12 z-10">
-                <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#CE4760] to-[#2F4550] tracking-wide mb-4 md:mb-0">
-                    SyncSpace
-                </h1>
-                <div className="flex gap-6">
-                    <button
-                        onClick={goToWhiteboard}
-                        className="bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300">
-                        <FaPalette className="inline-block mr-2" />
-                        Whiteboard
-                    </button>
-                </div>
-            </header>
 
             {!roomId ? (
                 <motion.div
