@@ -65,18 +65,29 @@ io.on('connection', (socket) => {
     console.log(`User joined room: ${roomId}`);
     io.to(roomId).emit('syncStickyNotes', stickyNotes);
 
-    socket.on('offer', (offer, receiverId) => {
-      socket.to(receiverId).emit('offer', offer, socket.id);
+    socket.on('sendOffer', (data) => {
+      console.log('Sending offer to: ' + data.target);
+      io.to(data.target).emit('receiveOffer', {
+        offer: data.offer,
+        from: socket.id,
+      });
     });
   
-    // Handle the answer from the callee
-    socket.on('answer', (answer, callerId) => {
-      socket.to(callerId).emit('answer', answer, socket.id);
+    // Signaling for WebRTC (sending answer)
+    socket.on('sendAnswer', (data) => {
+      console.log('Sending answer to: ' + data.target);
+      io.to(data.target).emit('receiveAnswer', {
+        answer: data.answer,
+        from: socket.id,
+      });
     });
   
-    // Handle ICE candidates for NAT traversal
-    socket.on('ice-candidate', (candidate, peerId) => {
-      socket.to(peerId).emit('ice-candidate', candidate, socket.id);
+    // Signaling for ICE candidates
+    socket.on('sendIceCandidate', (data) => {
+      io.to(data.target).emit('receiveIceCandidate', {
+        candidate: data.candidate,
+        from: socket.id,
+      });
     });
 
     if (drawingrooms[roomId]) {

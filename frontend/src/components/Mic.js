@@ -1,27 +1,33 @@
-// frontend/src/AudioCall.js
-
-import React, { useEffect, useRef, useState } from 'react';
+// src/AudioCall.js
+import React, { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 
 const AudioCall = () => {
+  const [peerConnections, setPeerConnections] = useState({});
   const [isMuted, setIsMuted] = useState(false);
-  const [peerConnections, setPeerConnections] = useState([]);
-  const [remoteAudio, setRemoteAudio] = useState(null);
-  const userMediaRef = useRef(null);
   const socketRef = useRef(null);
-  const localAudioRef = useRef(null);
-  const [peerId, setPeerId] = useState(null); // We'll assume peerId is generated or received
+  const userMediaRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const roomId = "room1"; // You can dynamically pass this based on route or params
 
   useEffect(() => {
-    socketRef.current = io('https://paletteconnect.onrender.com'); // Connect to the backend server
+    socketRef.current = io("https://paletteconnect.onrender.com");
 
-    // Event listeners
-    socketRef.current.on('offer', handleOffer);
-    socketRef.current.on('answer', handleAnswer);
-    socketRef.current.on('ice-candidate', handleIceCandidate);
-    socketRef.current.on('user-disconnected', handleUserDisconnected);
+    socketRef.current.emit("joinRoom", roomId);
 
-    // Request media access (audio)
+    socketRef.current.on('receiveOffer', (data) => {
+      handleReceiveOffer(data);
+    });
+
+    socketRef.current.on('receiveAnswer', (data) => {
+      handleReceiveAnswer(data);
+    });
+
+    socketRef.current.on('receiveIceCandidate', (data) => {
+      handleReceiveIceCandidate(data);
+    });
+
+    // Get local media (audio)
     getUserMedia();
 
     return () => {
@@ -29,103 +35,102 @@ const AudioCall = () => {
     };
   }, []);
 
-  // Request user media (microphone access)
   const getUserMedia = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       userMediaRef.current = stream;
-      localAudioRef.current.srcObject = stream;
-      socketRef.current.emit('joinRoom', 'room1'); // Join the room for communication
-    } catch (err) {
-      console.error('Error accessing media devices.', err);
+      localStreamRef.current = stream;
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        console.log("Got Audio Stream");
+      }
+      // Play local stream
+      const localAudio = document.createElement('audio');
+      localAudio.srcObject = stream;
+      localAudio.play();
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
     }
   };
 
-  // Handle incoming offer
-  const handleOffer = async (offer, callerId) => {
+  const handleReceiveOffer = async ({ offer, from }) => {
     const peerConnection = new RTCPeerConnection();
-    peerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
-        socketRef.current.emit('ice-candidate', event.candidate, callerId);
-      }
-    };
+    peerConnections[from] = peerConnection;
 
-    peerConnection.ontrack = (event) => {
-      const audioElement = document.createElement('audio');
-      audioElement.srcObject = event.streams[0];
-      audioElement.play();
-      setRemoteAudio(audioElement);
-    };
-
-    // Add user's media tracks to the peer connection
-    userMediaRef.current.getTracks().forEach((track) => {
-      peerConnection.addTrack(track, userMediaRef.current);
+    // Add local media stream to the peer connection
+    localStreamRef.current.getTracks().forEach((track) => {
+      peerConnection.addTrack(track, localStreamRef.current);
     });
 
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+    // Create an answer and send it back
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
-    socketRef.current.emit('answer', answer, callerId);
-    setPeerConnections((prev) => [...prev, peerConnection]);
-  };
+    socketRef.current.emit('sendAnswer', {
+      answer: answer,
+      target: from,
+    });
 
-  // Handle incoming answer
-  const handleAnswer = (answer, calleeId) => {
-    const peerConnection = peerConnections.find((pc) => pc.id === calleeId);
-    peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-  };
-
-  // Handle incoming ICE candidate
-  const handleIceCandidate = (candidate, peerId) => {
-    const peerConnection = peerConnections.find((pc) => pc.id === peerId);
-    peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-  };
-
-  // Handle when a user disconnects
-  const handleUserDisconnected = (peerId) => {
-    const peerConnection = peerConnections.find((pc) => pc.id === peerId);
-    if (peerConnection) {
-      peerConnection.close();
-      setPeerConnections((prev) => prev.filter((pc) => pc.id !== peerId));
-    }
-  };
-
-  // Start a call (offer)
-  const startCall = (receiverId) => {
-    const peerConnection = new RTCPeerConnection();
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
-        socketRef.current.emit('ice-candidate', event.candidate, receiverId);
+        socketRef.current.emit('sendIceCandidate', {
+          candidate: event.candidate,
+          target: from,
+        });
       }
     };
 
     peerConnection.ontrack = (event) => {
-      const audioElement = document.createElement('audio');
-      audioElement.srcObject = event.streams[0];
-      audioElement.play();
-      setRemoteAudio(audioElement);
+      const remoteAudio = document.createElement('audio');
+      remoteAudio.srcObject = event.streams[0];
+      remoteAudio.play();
     };
-
-    // Add user's media tracks to the peer connection
-    userMediaRef.current.getTracks().forEach((track) => {
-      peerConnection.addTrack(track, userMediaRef.current);
-    });
-
-    peerConnection.createOffer().then((offer) => {
-      return peerConnection.setLocalDescription(offer);
-    }).then(() => {
-      socketRef.current.emit('offer', peerConnection.localDescription, receiverId);
-    });
-
-    setPeerConnections((prev) => [...prev, peerConnection]);
   };
 
-  // Toggle mute
+  const handleReceiveAnswer = ({ answer, from }) => {
+    const peerConnection = peerConnections[from];
+    peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+  };
+
+  const handleReceiveIceCandidate = ({ candidate, from }) => {
+    const peerConnection = peerConnections[from];
+    peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+  };
+
+  const createOffer = async () => {
+    const peerConnection = new RTCPeerConnection();
+
+    peerConnection.addEventListener("icecandidate", (event) => {
+      if (event.candidate) {
+        socketRef.current.emit('sendIceCandidate', {
+          candidate: event.candidate,
+          target: roomId, // Send candidate to all peers
+        });
+      }
+    });
+
+    // Add local stream tracks
+    localStreamRef.current.getTracks().forEach((track) => {
+      peerConnection.addTrack(track, localStreamRef.current);
+    });
+
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+
+    socketRef.current.emit('sendOffer', {
+      offer: offer,
+      target: roomId, // Send offer to all peers
+    });
+
+    peerConnections[roomId] = peerConnection;
+  };
+
   const toggleMute = () => {
-    setIsMuted((prev) => !prev);
-    userMediaRef.current.getTracks().forEach((track) => {
-      if (track.kind === 'audio') {
+    setIsMuted(!isMuted);
+    localStreamRef.current.getTracks().forEach(track => {
+      if (track.kind === "audio") {
         track.enabled = !track.enabled;
       }
     });
@@ -134,10 +139,8 @@ const AudioCall = () => {
   return (
     <div>
       <h1>Audio Call</h1>
-      <audio ref={localAudioRef} autoPlay muted></audio>
-      {remoteAudio && <audio ref={(audio) => remoteAudio = audio} autoPlay></audio>}
-      <button onClick={toggleMute}>{isMuted ? 'Unmute' : 'Mute'}</button>
-      <button onClick={() => startCall(peerId)}>Start Call</button>
+      <button onClick={createOffer}>Start Call</button>
+      <button onClick={toggleMute}>{isMuted ? "Unmute" : "Mute"}</button>
     </div>
   );
 };
