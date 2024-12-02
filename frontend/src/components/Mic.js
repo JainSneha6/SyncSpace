@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
+import { FaUserPlus, FaMicrophone, FaMicrophoneSlash, FaPalette } from 'react-icons/fa';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
@@ -14,49 +14,54 @@ const AudioRoom = ({ roomId }) => {
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
 
-        navigator.mediaDevices
-            .getUserMedia({ audio: true })
+        navigator.mediaDevices.getUserMedia({ audio: true })
             .then((stream) => {
                 streamRef.current = stream;
 
+                // Set initial audio track state
+                stream.getAudioTracks().forEach((track) => {
+                    track.enabled = isMicOn;
+                });
+
+                // Notify server to join room
                 socketRef.current.emit('join room', roomId);
 
-                // Handle existing users
+                // Handle all current users in the room
                 socketRef.current.on('all users', (users) => {
-                    const newPeers = users.map((userId) => {
+                    const peers = [];
+                    users.forEach((userId) => {
                         const peer = createPeer(userId, socketRef.current.id, stream);
-                        peersRef.current.push({ peerID: userId, peer });
-                        return { peerID: userId, peer };
+                        peersRef.current.push({
+                            peerID: userId,
+                            peer,
+                        });
+                        peers.push(peer);
                     });
-                    setPeers(newPeers);
+                    setPeers(peers);
                 });
 
-                // Handle new user joining
+                // Handle new user joining the room
                 socketRef.current.on('user joined', (payload) => {
-                    const peerExists = peersRef.current.find(
-                        (p) => p.peerID === payload.callerID
-                    );
-                    if (!peerExists) {
-                        const peer = addPeer(payload.signal, payload.callerID, stream);
-                        peersRef.current.push({ peerID: payload.callerID, peer });
-                        setPeers((prev) => [...prev, { peerID: payload.callerID, peer }]);
-                    }
+                    const peer = addPeer(payload.signal, payload.callerID, stream);
+                    peersRef.current.push({
+                        peerID: payload.callerID,
+                        peer,
+                    });
+                    setPeers((users) => [...users, peer]);
                 });
 
-                // Handle signal from existing peer
+                // Handle signal exchange
                 socketRef.current.on('receiving returned signal', (payload) => {
                     const item = peersRef.current.find((p) => p.peerID === payload.id);
-                    if (item) {
-                        item.peer.signal(payload.signal);
-                    }
+                    item.peer.signal(payload.signal);
                 });
             })
             .catch((err) => console.error('Error accessing media devices:', err));
 
         return () => {
+            // Cleanup on unmount
             if (socketRef.current) socketRef.current.disconnect();
             peersRef.current.forEach(({ peer }) => peer.destroy());
-            peersRef.current = [];
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach((track) => track.stop());
             }
@@ -64,9 +69,13 @@ const AudioRoom = ({ roomId }) => {
     }, [roomId]);
 
     const toggleMic = () => {
-        const audioTracks = streamRef.current.getAudioTracks();
-        audioTracks.forEach((track) => (track.enabled = !track.enabled));
-        setIsMicOn((prev) => !prev);
+        if (streamRef.current) {
+            const audioTracks = streamRef.current.getAudioTracks();
+            audioTracks.forEach((track) => {
+                track.enabled = !track.enabled;
+            });
+            setIsMicOn(audioTracks.some((track) => track.enabled));
+        }
     };
 
     const createPeer = (userToSignal, callerID, stream) => {
@@ -100,41 +109,39 @@ const AudioRoom = ({ roomId }) => {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50">
+        <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
             <motion.div
-                className="w-full max-w-4xl bg-white rounded-lg shadow-lg p-6"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+                className="w-full max-w-7xl bg-white rounded-lg shadow-2xl p-10"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
             >
-                <h2 className="text-xl font-semibold text-center mb-4">
-                    Room ID: <span className="text-blue-500">{roomId}</span>
+                <h2 className="text-2xl font-semibold text-center mb-6">
+                    Room ID: <span className="text-[#CE4760]">{roomId}</span>
                 </h2>
-                <div className="grid grid-cols-1 gap-4">
-                    {peers.map((peerObj) => (
-                        <Audio key={peerObj.peerID} peer={peerObj.peer} />
-                    ))}
-                    {peers.length === 0 && (
-                        <p className="text-center text-gray-500">No participants yet...</p>
-                    )}
+
+                <div className="flex flex-col lg:flex-row gap-8">
+                    <div className="flex-1">
+                        {peers.length > 0 ? (
+                            peers.map((peer, index) => <Audio key={index} peer={peer} />)
+                        ) : (
+                            <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg shadow-inner">
+                                <p className="text-gray-500">Waiting for participants...</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <div className="flex justify-center mt-6">
+
+                <div className="flex flex-wrap gap-6 justify-center mt-8">
                     <button
                         onClick={toggleMic}
-                        className={`py-2 px-4 rounded-full shadow-md text-white ${
-                            isMicOn ? 'bg-red-500' : 'bg-green-500'
-                        }`}
+                        className="bg-[#CE4760] text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform duration-300"
                     >
                         {isMicOn ? (
-                            <>
-                                <FaMicrophone className="inline-block mr-2" />
-                                Mute
-                            </>
+                            <FaMicrophone className="inline-block mr-2" />
                         ) : (
-                            <>
-                                <FaMicrophoneSlash className="inline-block mr-2" />
-                                Unmute
-                            </>
+                            <FaMicrophoneSlash className="inline-block mr-2" />
                         )}
+                        {isMicOn ? 'Mute' : 'Unmute'}
                     </button>
                 </div>
             </motion.div>
@@ -143,21 +150,17 @@ const AudioRoom = ({ roomId }) => {
 };
 
 const Audio = ({ peer }) => {
-    const audioRef = useRef();
+    const ref = useRef();
 
     useEffect(() => {
         peer.on('stream', (stream) => {
-            if (audioRef.current && audioRef.current.srcObject !== stream) {
-                audioRef.current.srcObject = stream;
+            if (ref.current) {
+                ref.current.srcObject = stream;
             }
         });
-
-        return () => {
-            peer.removeAllListeners('stream');
-        };
     }, [peer]);
 
-    return <audio ref={audioRef} autoPlay controls />;
+    return <audio controls autoPlay ref={ref} />;
 };
 
 export default AudioRoom;
