@@ -13,43 +13,48 @@ const AudioRoom = ({ roomId }) => {
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
 
+        // Get user audio stream
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
                 streamRef.current = stream;
 
+                // Notify server of joining room
                 socketRef.current.emit('join room', roomId);
 
+                // Handle existing users
                 socketRef.current.on('all users', users => {
-                    const peers = [];
+                    const newPeers = [];
                     users.forEach(userId => {
                         const peer = createPeer(userId, socketRef.current.id, stream);
                         peersRef.current.push({
                             peerID: userId,
                             peer,
                         });
-                        peers.push(peer);
+                        newPeers.push(peer);
                     });
-                    setPeers(peers);
+                    setPeers(newPeers);
                 });
 
+                // Handle new user joining
                 socketRef.current.on('user joined', payload => {
                     const peer = addPeer(payload.signal, payload.callerID, stream);
                     peersRef.current.push({
                         peerID: payload.callerID,
                         peer,
                     });
-                    setPeers(users => [...users, peer]);
+                    setPeers(prevPeers => [...prevPeers, peer]);
                 });
 
+                // Handle return signal
                 socketRef.current.on('receiving returned signal', payload => {
-                    const item = peersRef.current.find(p => p.peerID === payload.id);
-                    if (item?.peer) {
-                        item.peer.signal(payload.signal);
+                    const peerObj = peersRef.current.find(p => p.peerID === payload.id);
+                    if (peerObj?.peer) {
+                        peerObj.peer.signal(payload.signal);
                     }
                 });
             })
             .catch(err => {
-                console.error("Error accessing media devices:", err);
+                console.error("Error accessing audio devices:", err);
             });
 
         return () => {
@@ -119,6 +124,7 @@ const Audio = ({ peer }) => {
     useEffect(() => {
         if (peer) {
             peer.on('stream', stream => {
+                console.log("Stream received:", stream);
                 if (ref.current) {
                     ref.current.srcObject = stream;
                 }
