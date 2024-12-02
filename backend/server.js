@@ -120,6 +120,7 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('syncStickyNotes', stickyNotesPerRoom[roomId]);
   });
 
+
   // Handle sticky note updates (e.g., moving or editing a note)
   socket.on('updateStickyNote', ({ roomId, note }) => {
     const notesInRoom = stickyNotesPerRoom[roomId] || [];
@@ -137,19 +138,20 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('syncStickyNotes', updatedNotes);
   });
 
+  socket.on('offer', (payload) => {
+    const { peerId, offer } = payload;
+    socket.to(peerId).emit('offer', offer, socket.id); // Send offer to peer
+  });
+
+  // Handle incoming audio stream
+  socket.on('receiveAudio', (peerId, audioStream) => {
+    socket.to(peerId).emit('receiveAudio', socket.id, audioStream); // Forward audio stream to the peer
+  });
+
   socket.on('screenSignal', (payload) => {
     socket.to(payload.roomId).emit('screenSignal', {
       signal: payload.signal,
       callerID: socket.id,
-    });
-
-    socket.on('offer', (payload) => {
-      const { peerId, offer } = payload;
-      socket.to(peerId).emit('offer', offer, socket.id); // Send offer to peer
-    });
-    
-    socket.on('receiveAudio', (peerId, audioStream) => {
-      socket.to(peerId).emit('receiveAudio', socket.id, audioStream); // Forward audio stream to the peer
     });
   });
 
