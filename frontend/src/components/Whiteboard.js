@@ -23,9 +23,7 @@ const Canvas = () => {
 
   useEffect(() => {
 
-    socketRef.current = io("https://paletteconnect.onrender.com");
-
-
+    socketRef.current = io("https://paletteconnect.onrender.com");   
     if (roomId) {
       socketRef.current.emit("joinRoom", roomId);
 

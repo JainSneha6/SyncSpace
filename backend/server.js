@@ -65,6 +65,20 @@ io.on('connection', (socket) => {
     console.log(`User joined room: ${roomId}`);
     io.to(roomId).emit('syncStickyNotes', stickyNotes);
 
+    socket.on('offer', (offer, receiverId) => {
+      socket.to(receiverId).emit('offer', offer, socket.id);
+    });
+  
+    // Handle the answer from the callee
+    socket.on('answer', (answer, callerId) => {
+      socket.to(callerId).emit('answer', answer, socket.id);
+    });
+  
+    // Handle ICE candidates for NAT traversal
+    socket.on('ice-candidate', (candidate, peerId) => {
+      socket.to(peerId).emit('ice-candidate', candidate, socket.id);
+    });
+
     if (drawingrooms[roomId]) {
       socket.emit("loadDrawing", drawingrooms[roomId]);
     } else {
@@ -136,16 +150,6 @@ io.on('connection', (socket) => {
     const updatedNotes = notesInRoom.filter(note => note.id !== noteId);
     stickyNotesPerRoom[roomId] = updatedNotes;
     io.to(roomId).emit('syncStickyNotes', updatedNotes);
-  });
-
-  socket.on('offer', (payload) => {
-    const { peerId, offer } = payload;
-    socket.to(peerId).emit('offer', offer, socket.id); // Send offer to peer
-  });
-
-  // Handle incoming audio stream
-  socket.on('receiveAudio', (peerId, audioStream) => {
-    socket.to(peerId).emit('receiveAudio', socket.id, audioStream); // Forward audio stream to the peer
   });
 
   socket.on('screenSignal', (payload) => {
