@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaUserPlus, FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
+import { FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
@@ -14,46 +14,36 @@ const AudioRoom = ({ roomId }) => {
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
 
-        navigator.mediaDevices.getUserMedia({ audio: true })
+        navigator.mediaDevices
+            .getUserMedia({ audio: true })
             .then((stream) => {
                 streamRef.current = stream;
 
                 socketRef.current.emit('join room', roomId);
 
+                // Handle existing users
                 socketRef.current.on('all users', (users) => {
-                    const newPeers = [];
-                    users.forEach((userID) => {
-                        const peer = createPeer(userID, socketRef.current.id, stream);
-                        peersRef.current.push({
-                            peerID: userID,
-                            peer,
-                        });
-                        newPeers.push({ peerID: userID, peer });
+                    const newPeers = users.map((userId) => {
+                        const peer = createPeer(userId, socketRef.current.id, stream);
+                        peersRef.current.push({ peerID: userId, peer });
+                        return { peerID: userId, peer };
                     });
                     setPeers(newPeers);
                 });
 
+                // Handle new user joining
                 socketRef.current.on('user joined', (payload) => {
-                    const existingPeer = peersRef.current.find(
+                    const peerExists = peersRef.current.find(
                         (p) => p.peerID === payload.callerID
                     );
-                    if (!existingPeer) {
-                        const peer = addPeer(
-                            payload.signal,
-                            payload.callerID,
-                            stream
-                        );
-                        peersRef.current.push({
-                            peerID: payload.callerID,
-                            peer,
-                        });
-                        setPeers((users) => [
-                            ...users,
-                            { peerID: payload.callerID, peer },
-                        ]);
+                    if (!peerExists) {
+                        const peer = addPeer(payload.signal, payload.callerID, stream);
+                        peersRef.current.push({ peerID: payload.callerID, peer });
+                        setPeers((prev) => [...prev, { peerID: payload.callerID, peer }]);
                     }
                 });
 
+                // Handle signal from existing peer
                 socketRef.current.on('receiving returned signal', (payload) => {
                     const item = peersRef.current.find((p) => p.peerID === payload.id);
                     if (item) {
@@ -65,13 +55,8 @@ const AudioRoom = ({ roomId }) => {
 
         return () => {
             if (socketRef.current) socketRef.current.disconnect();
-
-            // Cleanup peer connections
-            peersRef.current.forEach(({ peer }) => {
-                peer.destroy();
-            });
+            peersRef.current.forEach(({ peer }) => peer.destroy());
             peersRef.current = [];
-
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach((track) => track.stop());
             }
@@ -80,9 +65,7 @@ const AudioRoom = ({ roomId }) => {
 
     const toggleMic = () => {
         const audioTracks = streamRef.current.getAudioTracks();
-        audioTracks.forEach((track) => {
-            track.enabled = !track.enabled;
-        });
+        audioTracks.forEach((track) => (track.enabled = !track.enabled));
         setIsMicOn((prev) => !prev);
     };
 
@@ -94,11 +77,7 @@ const AudioRoom = ({ roomId }) => {
         });
 
         peer.on('signal', (signal) => {
-            socketRef.current.emit('sending signal', {
-                userToSignal,
-                callerID,
-                signal,
-            });
+            socketRef.current.emit('sending signal', { userToSignal, callerID, signal });
         });
 
         return peer;
@@ -112,10 +91,7 @@ const AudioRoom = ({ roomId }) => {
         });
 
         peer.on('signal', (signal) => {
-            socketRef.current.emit('returning signal', {
-                signal,
-                callerID,
-            });
+            socketRef.current.emit('returning signal', { signal, callerID });
         });
 
         peer.signal(incomingSignal);
@@ -124,27 +100,24 @@ const AudioRoom = ({ roomId }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col items-center justify-center p-6">
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50">
             <motion.div
-                className="w-full max-w-4xl bg-white rounded-lg shadow-lg p-8"
+                className="w-full max-w-4xl bg-white rounded-lg shadow-lg p-6"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
             >
                 <h2 className="text-xl font-semibold text-center mb-4">
                     Room ID: <span className="text-blue-500">{roomId}</span>
                 </h2>
-                <div className="flex flex-wrap gap-4 justify-center mb-6">
-                    {peers.map((peerObj) => {
-                        if (peerObj.peerID === socketRef.current.id) return null;
-                        return (
-                            <Audio key={peerObj.peerID} peer={peerObj.peer} />
-                        );
-                    })}
+                <div className="grid grid-cols-1 gap-4">
+                    {peers.map((peerObj) => (
+                        <Audio key={peerObj.peerID} peer={peerObj.peer} />
+                    ))}
                     {peers.length === 0 && (
-                        <p className="text-gray-500">No participants yet...</p>
+                        <p className="text-center text-gray-500">No participants yet...</p>
                     )}
                 </div>
-                <div className="flex justify-center">
+                <div className="flex justify-center mt-6">
                     <button
                         onClick={toggleMic}
                         className={`py-2 px-4 rounded-full shadow-md text-white ${
