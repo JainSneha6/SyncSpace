@@ -48,7 +48,6 @@ io.on('connection', (socket) => {
     io.to(payload.callerID).emit('receiving returned signal', { signal: payload.signal, id: socket.id });
   });
 
-  // Handle chat messages
   socket.on('sendMessage', ({ roomId, message }) => {
     if (!roomMessages[roomId]) {
       roomMessages[roomId] = [];
@@ -59,41 +58,15 @@ io.on('connection', (socket) => {
     io.in(roomId).emit('receiveMessage', chatMessage);
   });
 
-  // Whiteboard socket events
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
     console.log(`User joined room: ${roomId}`);
     io.to(roomId).emit('syncStickyNotes', stickyNotes);
 
-    socket.on('sendOffer', (data) => {
-      console.log('Sending offer to: ' + data.target);
-      io.to(data.target).emit('receiveOffer', {
-        offer: data.offer,
-        from: socket.id,
-      });
-    });
-  
-    // Signaling for WebRTC (sending answer)
-    socket.on('sendAnswer', (data) => {
-      console.log('Sending answer to: ' + data.target);
-      io.to(data.target).emit('receiveAnswer', {
-        answer: data.answer,
-        from: socket.id,
-      });
-    });
-  
-    // Signaling for ICE candidates
-    socket.on('sendIceCandidate', (data) => {
-      io.to(data.target).emit('receiveIceCandidate', {
-        candidate: data.candidate,
-        from: socket.id,
-      });
-    });
-
     if (drawingrooms[roomId]) {
       socket.emit("loadDrawing", drawingrooms[roomId]);
     } else {
-      drawingrooms[roomId] = []; // Initialize room if not present
+      drawingrooms[roomId] = []; 
     }
 
     if (stickyNotesPerRoom[roomId]) {
@@ -101,14 +74,19 @@ io.on('connection', (socket) => {
     } else {
       stickyNotesPerRoom[roomId] = []; // Initialize if not present
     }
-  });
 
-  // Broadcast the audio stream signal to other users
-  socket.on('sending audio', (payload) => {
-    io.to(payload.roomId).emit('receiveAudio', {
-      audioSignal: payload.audioSignal,
-      userId: socket.id
+    socket.on('call-offer', (data) => {
+      socket.to(data.to).emit('call-offer', data);
     });
+  
+    socket.on('call-answer', (data) => {
+      socket.to(data.to).emit('call-answer', data);
+    });
+  
+    socket.on('new-ice-candidate', (data) => {
+      socket.to(data.to).emit('new-ice-candidate', data);
+    });
+
   });
 
 
