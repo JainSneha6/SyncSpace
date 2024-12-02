@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
-import { motion } from 'framer-motion';
 
 const AudioRoom = ({ roomId }) => {
     const [peers, setPeers] = useState([]);
@@ -65,20 +64,14 @@ const AudioRoom = ({ roomId }) => {
 
     const toggleMic = () => {
         if (streamRef.current) {
-            // Get all audio tracks
             const audioTracks = streamRef.current.getAudioTracks();
-    
-            // Toggle enabled state of all audio tracks
             audioTracks.forEach((track) => {
                 track.enabled = !track.enabled;
             });
-    
-            // Update the UI state to reflect the actual track state
             const micState = audioTracks.some((track) => track.enabled);
             setIsMicOn(micState);
         }
     };
-    
 
     const createPeer = (userToSignal, callerID, stream) => {
         const peer = new Peer({
@@ -111,55 +104,44 @@ const AudioRoom = ({ roomId }) => {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50">
-                <div className="grid grid-cols-1 gap-4">
-                    {peers.map((peerObj) => (
-                        <Audio key={peerObj.peerID} peer={peerObj.peer} />
-                    ))}
-                    {peers.length === 0 && (
-                        <p className="text-center text-gray-500">No participants yet...</p>
-                    )}
-                </div>
-                <div className="flex justify-center mt-6">
-                    <button
-                        onClick={toggleMic}
-                        className={`py-2 px-4 rounded-full shadow-md text-white ${
-                            isMicOn ? 'bg-red-500' : 'bg-green-500'
-                        }`}
-                    >
-                        {isMicOn ? (
-                            <>
-                                <FaMicrophone className="inline-block mr-2" />
-                                Mute
-                            </>
-                        ) : (
-                            <>
-                                <FaMicrophoneSlash className="inline-block mr-2" />
-                                Unmute
-                            </>
-                        )}
-                    </button>
-                </div>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <button
+                onClick={toggleMic}
+                className={`py-3 px-6 rounded-full shadow-md text-white ${
+                    isMicOn ? 'bg-red-500' : 'bg-green-500'
+                }`}
+            >
+                {isMicOn ? (
+                    <>
+                        <FaMicrophone className="inline-block mr-2" />
+                        Mute
+                    </>
+                ) : (
+                    <>
+                        <FaMicrophoneSlash className="inline-block mr-2" />
+                        Unmute
+                    </>
+                )}
+            </button>
+            {/* Hidden audio elements to process streams */}
+            {peers.map((peerObj) => (
+                <audio
+                    key={peerObj.peerID}
+                    ref={(ref) => {
+                        if (ref) {
+                            peerObj.peer.on('stream', (stream) => {
+                                if (ref.srcObject !== stream) {
+                                    ref.srcObject = stream;
+                                }
+                            });
+                        }
+                    }}
+                    style={{ display: 'none' }}
+                    autoPlay
+                />
+            ))}
         </div>
     );
-};
-
-const Audio = ({ peer }) => {
-    const audioRef = useRef();
-
-    useEffect(() => {
-        peer.on('stream', (stream) => {
-            if (audioRef.current && audioRef.current.srcObject !== stream) {
-                audioRef.current.srcObject = stream;
-            }
-        });
-
-        return () => {
-            peer.removeAllListeners('stream');
-        };
-    }, [peer]);
-
-    return <audio ref={audioRef} autoPlay controls />;
 };
 
 export default AudioRoom;
