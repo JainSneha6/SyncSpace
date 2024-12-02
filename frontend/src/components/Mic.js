@@ -159,7 +159,7 @@ const Audio = ({ peer }) => {
         };
     }, [peer]);
 
-    return <audio ref={audioRef} autoPlay />;
+    return <audio ref={audioRef} autoPlay controls />;
 };
 
 export default AudioRoom;
