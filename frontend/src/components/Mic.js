@@ -112,14 +112,6 @@ const AudioRoom = ({ roomId }) => {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50">
-            <motion.div
-                className="w-full max-w-4xl bg-white rounded-lg shadow-lg p-6"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-            >
-                <h2 className="text-xl font-semibold text-center mb-4">
-                    Room ID: <span className="text-blue-500">{roomId}</span>
-                </h2>
                 <div className="grid grid-cols-1 gap-4">
                     {peers.map((peerObj) => (
                         <Audio key={peerObj.peerID} peer={peerObj.peer} />
@@ -148,7 +140,6 @@ const AudioRoom = ({ roomId }) => {
                         )}
                     </button>
                 </div>
-            </motion.div>
         </div>
     );
 };
@@ -168,7 +159,7 @@ const Audio = ({ peer }) => {
         };
     }, [peer]);
 
-    return <audio ref={audioRef} autoPlay controls />;
+    return <audio ref={audioRef} autoPlay />;
 };
 
 export default AudioRoom;
