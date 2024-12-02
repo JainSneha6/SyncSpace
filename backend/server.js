@@ -74,19 +74,6 @@ io.on('connection', (socket) => {
     } else {
       stickyNotesPerRoom[roomId] = []; // Initialize if not present
     }
-
-    socket.on('call-offer', (data) => {
-      socket.to(data.to).emit('call-offer', data);
-    });
-  
-    socket.on('call-answer', (data) => {
-      socket.to(data.to).emit('call-answer', data);
-    });
-  
-    socket.on('new-ice-candidate', (data) => {
-      socket.to(data.to).emit('new-ice-candidate', data);
-    });
-
   });
 
 
