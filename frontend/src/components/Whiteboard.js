@@ -20,10 +20,6 @@ const Canvas = () => {
   const [sides, setSides] = useState(5);
   const colorInputRef = useRef(null);
   const [stickyNotes, setStickyNotes] = useState([]);
-  const [isMuted, setIsMuted] = useState(false);
-  const [peerConnections, setPeerConnections] = useState([]);
-  const userMediaRef = useRef(null);
-  const localAudioRef = useRef(null);
 
   useEffect(() => {
 
@@ -63,11 +59,6 @@ const Canvas = () => {
       socketRef.current.on("createStickyNote", (note) => {
         setStickyNotes((prevNotes) => [...prevNotes, note]);
       });
-
-      socketRef.current.on('userJoined', handleUserJoined);
-      socketRef.current.on('receiveAudio', handleReceiveAudio);
-
-      getUserMedia();
     }
 
     return () => {
@@ -76,64 +67,8 @@ const Canvas = () => {
       socketRef.current.off("clearBoard");
       socketRef.current.off("syncStickyNotes");
       socketRef.current.off("createStickyNote");
-      socketRef.current.disconnect();
     };
   }, [roomId]);
-
-  const getUserMedia = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      userMediaRef.current = stream;
-      localAudioRef.current.srcObject = stream;
-      socketRef.current.emit('joinRoom', 'room1'); // Assume room name is 'room1'
-    } catch (err) {
-      console.error('Error accessing media devices.', err);
-    }
-  };
-
-  const handleUserJoined = (peerId) => {
-    createPeerConnection(peerId);
-  };
-
-  const handleReceiveAudio = (peerId, audioStream) => {
-    addAudioStream(peerId, audioStream);
-  };
-
-  const createPeerConnection = (peerId) => {
-    const peerConnection = new RTCPeerConnection();
-    peerConnection.ontrack = (event) => {
-      addAudioStream(peerId, event.streams[0]);
-    };
-
-    // Add user's media stream to peer connection
-    userMediaRef.current.getTracks().forEach((track) => {
-      peerConnection.addTrack(track, userMediaRef.current);
-    });
-
-    peerConnection.createOffer().then((offer) => {
-      peerConnection.setLocalDescription(offer);
-      socketRef.current.emit('offer', { peerId, offer });
-    });
-
-    setPeerConnections((prev) => [...prev, peerConnection]);
-  };
-
-  const addAudioStream = (peerId, stream) => {
-    const audioElement = document.createElement('audio');
-    audioElement.srcObject = stream;
-    audioElement.play();
-    audioElement.id = peerId;
-    document.body.appendChild(audioElement); // Add audio to the page
-  };
-
-  const toggleMute = () => {
-    setIsMuted((prev) => !prev);
-    userMediaRef.current.getTracks().forEach((track) => {
-      if (track.kind === 'audio') {
-        track.enabled = !track.enabled;
-      }
-    });
-  };
 
   const renderDrawing = (ctx, drawing) => {
     ctx.strokeStyle = drawing.color || "#000";
@@ -586,97 +521,98 @@ const Canvas = () => {
   };
   
   return (
-    <div className="min-h-screen bg-white flex flex-col lg:flex-row">
-      {/* Sidebar */}
-      <div className="bg-[#2F4550] shadow-xl rounded-lg lg:rounded-r-lg p-4 flex flex-wrap lg:flex-col gap-4">
-        {/* Tools */}
-        <button onClick={toggleMute}>
-        {isMuted ? 'Unmute' : 'Mute'}
-      </button>
-      <audio ref={localAudioRef} autoPlay muted></audio>
+    <div className="min-h-screen bg-pink-600 flex">
+      <div className="bg-white shadow-xl rounded-r-lg p-4 flex flex-col gap-4">
         <button
           onClick={() => setTool("brush")}
-          className={`p-3 rounded-full shadow-md transition-all ${tool === "brush" ? "bg-[#CE4760] text-white" : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"}`}
+          className={`p-3 rounded-full shadow-md transition-all ${tool === "brush" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+            }`}
         >
           <RiBrushFill className="text-xl" />
         </button>
+
         <button
           onClick={() => setTool("eraser")}
-          className={`p-3 rounded-full shadow-md transition-all ${tool === "eraser" ? "bg-[#CE4760] text-white" : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"}`}
+          className={`p-3 rounded-full shadow-md transition-all ${tool === "eraser" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+            }`}
         >
           <RiEraserFill className="text-xl" />
         </button>
-        {/* Shapes */}
-        <div className="flex gap-4 flex-wrap">
+
+        <div className="flex gap-8">
           <button
             onClick={() => setTool("circle")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "circle" ? "bg-[#CE4760] text-white" : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"}`}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "circle" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
           >
             <RiCircleLine className="text-xl" />
           </button>
+
           <button
             onClick={() => setTool("rectangle")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "rectangle" ? "bg-[#CE4760] text-white" : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"}`}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "rectangle" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
           >
             <RiRectangleLine className="text-xl" />
           </button>
+        </div>
+
+        <div className="flex gap-8 mt-2">
           <button
             onClick={() => setTool("triangle")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "triangle" ? "bg-[#CE4760] text-white" : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"}`}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "triangle" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
           >
             <RiTriangleLine className="text-xl" />
           </button>
+
           <button
             onClick={() => setTool("line")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "line" ? "bg-[#CE4760] text-white" : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"}`}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "line" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
           >
             <FaGripLines className="text-xl" />
           </button>
         </div>
-        {/* Additional Shapes */}
-        <div className="flex gap-4 flex-wrap mt-2">
+
+        <div className="flex gap-8 mt-2">
           <button
             onClick={() => setTool("ellipse")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "ellipse" ? "bg-[#CE4760] text-white" : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"}`}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "ellipse" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
           >
             <TbOvalVertical className="text-xl" />
           </button>
+
           <button
             onClick={() => setTool("polygon")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "polygon" ? "bg-[#CE4760] text-white" : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"}`}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "polygon" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
           >
             <BiPolygon className="text-xl" />
           </button>
+        </div>
+
+        <div className="flex gap-8 mt-2">
           <button
             onClick={() => setTool("star")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "star" ? "bg-[#CE4760] text-white" : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"}`}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "star" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
           >
             <BiStar className="text-xl" />
           </button>
           <button
             onClick={() => setTool("arrow")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "arrow" ? "bg-[#CE4760] text-white" : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"}`}
+            className={`p-3 rounded-full shadow-md transition-all ${tool === "arrow" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
+              }`}
           >
             <FaArrowsAltH className="text-xl" />
           </button>
         </div>
-        {/* Fill and Sticky Note */}
-        <button
-          onClick={() => setTool("fill")}
-          className={`p-3 rounded-full shadow-md transition-all ${tool === "fill" ? "bg-[#CE4760] text-white" : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"}`}
-        >
-          <RiPaintFill className="text-xl" />
-        </button>
-        <button
-          onClick={() => setTool("stickyNote")}
-          className={`p-3 rounded-full shadow-md transition-all ${tool === "stickyNote" ? "bg-[#CE4760] text-white" : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"}`}
-        >
-          <RiStickyNoteFill className="text-xl" />
-        </button>
-        {/* Color Picker and Clear */}
+
         <button
           onClick={handleColorClick}
-          className="p-2 rounded-full bg-[#CE4760] text-white hover:bg-[#2F4550]"
+          className="p-2 rounded-full bg-pink-600 text-white hover:bg-pink-700"
         >
           <RiPaletteFill className="text-xl" />
         </button>
@@ -687,51 +623,66 @@ const Canvas = () => {
           onChange={(e) => setColor(e.target.value)}
           className="hidden"
         />
+
         <input
           type="range"
           min="1"
           max="50"
           value={brushWidth}
           onChange={(e) => setBrushWidth(Number(e.target.value))}
-          className="accent-[#CE4760]"
+          className="accent-pink-600"
         />
+
+        <button
+          onClick={() => setTool("fill")}
+          className={`p-3 rounded-full shadow-md transition-all ${tool === "fill" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"}`}
+        >
+          <RiPaintFill className="text-xl" />
+        </button>
+
+
+        <button
+          onClick={() => setTool("stickyNote")}
+          className={`p-3 rounded-full shadow-md transition-all ${tool === "stickyNote" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"}`}
+        >
+          <RiStickyNoteFill className="text-xl" />
+        </button>
+
         <button
           onClick={clearCanvas}
-          className="p-3 rounded-full bg-white text-[#CE4760] shadow-md transition-all hover:bg-[#CE4760] hover:text-white"
+          className="p-3 rounded-full bg-white text-pink-600 shadow-md transition-all hover:bg-pink-600 hover:text-white"
         >
           <RiDeleteBinLine className="text-xl" />
         </button>
       </div>
-  
-      {/* Canvas Section */}
-      <div className="relative bg-white rounded-lg shadow-xl overflow-hidden flex-grow m-4 lg:m-8">
-      <canvas
-        ref={canvasRef}
-        width={1310}
-        height={662}
-        className="border-2 border-[#CE4760] rounded-lg w-full h-auto"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-      />
-      {stickyNotes.map((note) => (
-        <StickyNote
-          key={note.id}
-          noteData={note}
-          onUpdateNote={updateStickyNote}
-          onDeleteNote={deleteStickyNote}
-          onCreateNewNote={handleCreateNewNote}
-        />
-      ))}
-    </div>
 
-  
-      {/* Chat Section */}
-      <div className="w-full lg:w-1/3 bg-[#2F4550] text-white shadow-xl rounded-lg lg:rounded-l-lg p-4">
-        <Chat socketRef={socketRef} roomId={roomId} height="400px" />
+      <div className="relative bg-white rounded-lg shadow-xl overflow-hidden flex-grow m-8" >
+        <canvas
+          ref={canvasRef}
+          width={1310}
+          height={662}
+          className="border-2 border-pink-600 rounded-lg"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+        />
+
+        {stickyNotes.map((note) => (
+          <StickyNote
+            key={note.id}
+            noteData={note}
+            onUpdateNote={updateStickyNote}
+            onDeleteNote={deleteStickyNote}
+            onCreateNewNote={handleCreateNewNote}
+          />
+        ))}
+
+      </div>
+      <div className="w-1/3 bg-white shadow-xl rounded-l-lg p-4">
+        <Chat socketRef={socketRef} roomId={roomId} height={'400px'} />
       </div>
     </div>
-  );  
-};  
+  );
+};
 
 export default Canvas;
