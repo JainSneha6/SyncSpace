@@ -65,17 +65,20 @@ const AudioRoom = ({ roomId }) => {
 
     const toggleMic = () => {
         if (streamRef.current) {
+            // Get all audio tracks
             const audioTracks = streamRef.current.getAudioTracks();
     
-            if (audioTracks.length > 0) {
-                // Toggle the enabled state of the audio track
-                audioTracks[0].enabled = !audioTracks[0].enabled;
+            // Toggle enabled state of all audio tracks
+            audioTracks.forEach((track) => {
+                track.enabled = !track.enabled;
+            });
     
-                // Update state based on the track's current status
-                setIsMicOn(audioTracks[0].enabled);
-            }
+            // Update the UI state to reflect the actual track state
+            const micState = audioTracks.some((track) => track.enabled);
+            setIsMicOn(micState);
         }
-    };    
+    };
+    
 
     const createPeer = (userToSignal, callerID, stream) => {
         const peer = new Peer({
