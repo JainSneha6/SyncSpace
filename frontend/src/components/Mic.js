@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaUserPlus, FaMicrophone, FaMicrophoneSlash, FaPalette } from 'react-icons/fa';
+import { FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import Chat from './Chat'; // Import the Chat component
 
 const AudioRoom = () => {
     const [roomId, setRoomId] = useState('');
@@ -52,7 +51,7 @@ const AudioRoom = () => {
                 });
             })
             .catch(err => {
-                console.error("Error accessing media devices:", err);
+                console.error("Error accessing audio devices:", err);
             });
 
         return () => {
@@ -113,25 +112,8 @@ const AudioRoom = () => {
         // Room ID is already set in state
     };
 
-    const goToWhiteboard = () => {
-        navigate(`/whiteboard/${roomId}`);
-    };
-
     return (
         <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
-            <header className="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center mb-12 z-10">
-                <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#CE4760] to-[#2F4550] tracking-wide mb-4 md:mb-0">
-                    SyncSpace
-                </h1>
-                <div className="flex gap-6">
-                    <button
-                        onClick={goToWhiteboard}
-                        className="bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300">
-                        <FaPalette className="inline-block mr-2" />
-                        Whiteboard
-                    </button>
-                </div>
-            </header>
 
             {!roomId ? (
                 <motion.div
@@ -141,7 +123,6 @@ const AudioRoom = () => {
                     <h2 className="text-3xl font-semibold text-center mb-6 text-[#2F4550]">
                         Create or Join a Room
                     </h2>
-
                     <div className="flex flex-col gap-6">
                         <button
                             onClick={handleRoomCreate}
@@ -159,7 +140,6 @@ const AudioRoom = () => {
                             <button
                                 type="submit"
                                 className="w-full bg-[#2F4550] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
-                                <FaUserPlus className="inline-block mr-2" />
                                 Join Room
                             </button>
                         </form>
@@ -174,24 +154,7 @@ const AudioRoom = () => {
                         Room ID: <span className="text-[#CE4760]">{roomId}</span>
                     </h2>
 
-                    <div className="flex flex-col lg:flex-row gap-8">
-                        <div className="flex-1">
-                            {peers.length > 0 ? (
-                                peers.map((peer, index) => (
-                                    <Audio key={index} peer={peer} />
-                                ))
-                            ) : (
-                                <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg shadow-inner">
-                                    <p className="text-gray-500">Waiting for participants...</p>
-                                </div>
-                            )}
-                        </div>
-                        <div className="w-full lg:w-1/3 bg-[#F5F5F5] rounded-lg shadow-md p-6">
-                            <Chat socketRef={socketRef} roomId={roomId} height={'40px'} />
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-6 justify-center mt-8">
+                    <div className="flex justify-center mt-8">
                         <button
                             onClick={toggleMic}
                             className="bg-[#CE4760] text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform duration-300">
@@ -202,22 +165,6 @@ const AudioRoom = () => {
                 </motion.div>
             )}
         </div>
-    );
-};
-
-const Audio = ({ peer }) => {
-    const ref = useRef();
-
-    useEffect(() => {
-        peer.on('stream', stream => {
-            if (ref.current) {
-                ref.current.srcObject = stream;
-            }
-        });
-    }, [peer]);
-
-    return (
-        <audio controls autoPlay ref={ref} />
     );
 };
 
