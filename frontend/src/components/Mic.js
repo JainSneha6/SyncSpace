@@ -3,17 +3,13 @@ import { FaUserPlus, FaMicrophone, FaMicrophoneSlash, FaPalette } from 'react-ic
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import Chat from './Chat'; // Import the Chat component
 
-const AudioRoom = () => {
-    const [roomId, setRoomId] = useState('');
+const AudioRoom = ({roomId}) => {
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
     const socketRef = useRef();
     const peersRef = useRef([]);
     const streamRef = useRef();
-    const navigate = useNavigate();
 
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
@@ -103,51 +99,9 @@ const AudioRoom = () => {
         return peer;
     };
 
-    const handleRoomCreate = () => {
-        const newRoomId = Math.random().toString(36).substring(7);
-        setRoomId(newRoomId);
-    };
-
-    const handleRoomJoin = (e) => {
-        e.preventDefault();
-    };
-
     return (
         <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
 
-            {!roomId ? (
-                <motion.div
-                    className="w-full max-w-lg bg-gradient-to-br from-white to-[#F5F5F5] rounded-lg shadow-2xl p-10"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}>
-                    <h2 className="text-3xl font-semibold text-center mb-6 text-[#2F4550]">
-                        Create or Join a Room
-                    </h2>
-
-                    <div className="flex flex-col gap-6">
-                        <button
-                            onClick={handleRoomCreate}
-                            className="w-full bg-[#CE4760] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
-                            Create Room
-                        </button>
-                        <form onSubmit={handleRoomJoin} className="flex flex-col gap-6">
-                            <input
-                                type="text"
-                                value={roomId}
-                                onChange={(e) => setRoomId(e.target.value)}
-                                placeholder="Enter Room ID"
-                                className="w-full p-4 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#CE4760] text-lg"
-                            />
-                            <button
-                                type="submit"
-                                className="w-full bg-[#2F4550] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
-                                <FaUserPlus className="inline-block mr-2" />
-                                Join Room
-                            </button>
-                        </form>
-                    </div>
-                </motion.div>
-            ) : (
                 <motion.div
                     className="w-full max-w-7xl bg-white rounded-lg shadow-2xl p-10"
                     initial={{ opacity: 0, y: 30 }}
@@ -168,9 +122,6 @@ const AudioRoom = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="w-full lg:w-1/3 bg-[#F5F5F5] rounded-lg shadow-md p-6">
-                            <Chat socketRef={socketRef} roomId={roomId} height={'40px'} />
-                        </div>
                     </div>
 
                     <div className="flex flex-wrap gap-6 justify-center mt-8">
@@ -182,7 +133,7 @@ const AudioRoom = () => {
                         </button>
                     </div>
                 </motion.div>
-            )}
+            
         </div>
     );
 };
