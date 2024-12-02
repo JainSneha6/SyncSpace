@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Whiteboard from './components/Whiteboard';
 import VideoRoom from './components/VideoRoom';
-import AudioCall from './components/Mic';
+import AudioRoom from './components/Mic';
 
 function App() {
   return (
@@ -10,7 +10,7 @@ function App() {
       <Routes>
         <Route path="/" element={<VideoRoom/>} />
         <Route path="/whiteboard/:roomId" element={<Whiteboard />} />
-        <Route path="/mic" element={<AudioCall/>} />
+        <Route path="/mic" element={<AudioRoom/>} />
       </Routes>
     </Router>
   );
