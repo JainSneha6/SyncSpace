@@ -4,20 +4,21 @@ import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import Chat from './Chat'; // Import the Chat component
 
 const AudioRoom = () => {
     const [roomId, setRoomId] = useState('');
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
     const socketRef = useRef();
-    const peersRef = useRef([]);
     const streamRef = useRef();
+    const peersRef = useRef([]);
     const navigate = useNavigate();
 
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
 
-        navigator.mediaDevices.getUserMedia({ audio: true })
+        navigator.mediaDevices.getUserMedia({ audio: true }) // Only request audio
             .then(stream => {
                 streamRef.current = stream;
 
@@ -51,7 +52,7 @@ const AudioRoom = () => {
                 });
             })
             .catch(err => {
-                console.error("Error accessing audio devices:", err);
+                console.error("Error accessing media devices:", err);
             });
 
         return () => {
@@ -112,9 +113,14 @@ const AudioRoom = () => {
         // Room ID is already set in state
     };
 
+    const goToWhiteboard = () => {
+        navigate(`/whiteboard/${roomId}`);
+    };
+
     return (
         <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
-
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#CE4760] via-[#2F4550] to-[#CE4760] opacity-10 pointer-events-none"></div>
+    
             {!roomId ? (
                 <motion.div
                     className="w-full max-w-lg bg-gradient-to-br from-white to-[#F5F5F5] rounded-lg shadow-2xl p-10"
@@ -123,6 +129,7 @@ const AudioRoom = () => {
                     <h2 className="text-3xl font-semibold text-center mb-6 text-[#2F4550]">
                         Create or Join a Room
                     </h2>
+    
                     <div className="flex flex-col gap-6">
                         <button
                             onClick={handleRoomCreate}
@@ -153,8 +160,22 @@ const AudioRoom = () => {
                     <h2 className="text-2xl font-semibold text-center mb-6">
                         Room ID: <span className="text-[#CE4760]">{roomId}</span>
                     </h2>
-
-                    <div className="flex justify-center mt-8">
+    
+                    <div className="flex flex-col lg:flex-row gap-8">
+                        <div className="flex-1 grid grid-cols-1 gap-6">
+                            {peers.length > 0 ? (
+                                peers.map((peer, index) => (
+                                    <AudioPeer key={index} peer={peer} />
+                                ))
+                            ) : (
+                                <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg shadow-inner">
+                                    <p className="text-gray-500">Waiting for participants...</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+    
+                    <div className="flex flex-wrap gap-6 justify-center mt-8">
                         <button
                             onClick={toggleMic}
                             className="bg-[#CE4760] text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform duration-300">
@@ -164,6 +185,30 @@ const AudioRoom = () => {
                     </div>
                 </motion.div>
             )}
+        </div>
+    );    
+};    
+
+const AudioPeer = ({ peer }) => {
+    const ref = useRef();
+
+    useEffect(() => {
+        peer.on('stream', stream => {
+            if (ref.current) {
+                ref.current.srcObject = stream;
+            }
+        });
+    }, [peer]);
+
+    return (
+        <div className="relative">
+            <audio
+                ref={ref}
+                autoPlay
+                controls
+                className="rounded-lg shadow-lg w-full"
+            />
+            <div className="absolute top-0 left-0 bg-gray-700 text-white text-sm font-semibold p-1 rounded-bl-lg">Participant</div>
         </div>
     );
 };
