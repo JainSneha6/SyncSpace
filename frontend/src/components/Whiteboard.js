@@ -538,9 +538,7 @@ const Canvas = () => {
           <RiEraserFill className="text-xl" />
         </button>
 
-        <button>
-          <AudioRoom roomId = {roomId}/>
-        </button>
+        <AudioRoom roomId={roomId} />
 
         <div className="flex gap-8">
           <button
