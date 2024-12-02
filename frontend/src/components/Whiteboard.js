@@ -522,6 +522,7 @@ const Canvas = () => {
   return (
     <div className="min-h-screen bg-pink-600 flex">
       <div className="bg-white shadow-xl rounded-r-lg p-4 flex flex-col gap-4">
+      <AudioRoom roomId={roomId} />
         <button
           onClick={() => setTool("brush")}
           className={`p-3 rounded-full shadow-md transition-all ${tool === "brush" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
@@ -537,8 +538,6 @@ const Canvas = () => {
         >
           <RiEraserFill className="text-xl" />
         </button>
-
-        <AudioRoom roomId={roomId} />
 
         <div className="flex gap-8">
           <button
