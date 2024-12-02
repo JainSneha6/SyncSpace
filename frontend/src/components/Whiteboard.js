@@ -7,6 +7,7 @@ import { BiPolygon, BiStar } from 'react-icons/bi';
 import { FaArrowsAltH, FaGripLines, FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
 import Chat from "./Chat";
 import StickyNote from './StickyNote';
+import AudioRoom from "./Mic";
 
 const Canvas = () => {
   const socketRef = useRef(null);
@@ -535,6 +536,10 @@ const Canvas = () => {
             }`}
         >
           <RiEraserFill className="text-xl" />
+        </button>
+
+        <button>
+          <AudioRoom roomId = {roomId}/>
         </button>
 
         <div className="flex gap-8">
