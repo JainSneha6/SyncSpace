@@ -103,12 +103,12 @@ const VoiceCall = () => {
       >
         {isMicOn ? (
           <>
-            <FaMicrophoneSlash className="text-lg" />
-          </>
+          <FaMicrophone className="text-lg" />
+        </>
         ) : (
           <>
-            <FaMicrophone className="text-lg" />
-          </>
+          <FaMicrophoneSlash className="text-lg" />
+        </>
         )}
       </button>
       <audio ref={localStreamRef} autoPlay muted />
