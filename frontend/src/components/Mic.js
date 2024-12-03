@@ -26,26 +26,30 @@ const AudioCall = () => {
 
   // Start the call
   const startCall = async () => {
-    // Get user media (audio)
-    stream.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+    try {
+      // Get user media (audio)
+      stream.current = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    // Display local audio
-    localAudioRef.current.srcObject = stream.current;
+      // Display local audio
+      localAudioRef.current.srcObject = stream.current;
 
-    // Create peer connection
-    peerConnection.current = new RTCPeerConnection();
+      // Create peer connection
+      peerConnection.current = new RTCPeerConnection();
 
-    // Add tracks to peer connection
-    stream.current.getTracks().forEach((track) => {
-      peerConnection.current.addTrack(track, stream.current);
-    });
+      // Add tracks to peer connection
+      stream.current.getTracks().forEach((track) => {
+        peerConnection.current.addTrack(track, stream.current);
+      });
 
-    // Create offer and send it to the server
-    const offer = await peerConnection.current.createOffer();
-    await peerConnection.current.setLocalDescription(offer);
-    socket.current.emit('offer', offer);
+      // Create offer and send it to the server
+      const offer = await peerConnection.current.createOffer();
+      await peerConnection.current.setLocalDescription(offer);
+      socket.current.emit('offer', offer);
 
-    setIsCalling(true);
+      setIsCalling(true);
+    } catch (err) {
+      console.error("Error starting the call:", err);
+    }
   };
 
   // Handle the incoming offer
@@ -75,18 +79,20 @@ const AudioCall = () => {
   };
 
   // Handle ICE candidate collection
-  peerConnection.current?.onicecandidate = ({ candidate }) => {
-    if (candidate) {
-      socket.current.emit('candidate', candidate);
-    }
-  };
+  if (peerConnection.current) {
+    peerConnection.current.onicecandidate = ({ candidate }) => {
+      if (candidate) {
+        socket.current.emit('candidate', candidate);
+      }
+    };
+  }
 
   return (
     <div>
       <h2>Audio Call</h2>
       <audio ref={localAudioRef} autoPlay muted />
       <audio ref={remoteAudioRef} autoPlay />
-      
+
       {isCalling && !isConnected && <p>Connecting...</p>}
       {!isCalling && <button onClick={startCall}>Start Call</button>}
     </div>
