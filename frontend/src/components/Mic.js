@@ -10,7 +10,7 @@ const VoiceCall = () => {
 
   useEffect(() => {
     // Socket connection
-    socketRef.current = io('http://localhost:4000');
+    socketRef.current = io('https://paletteconnect.onrender.com');
 
     // WebRTC configuration
     const configuration = {
