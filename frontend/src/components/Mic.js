@@ -8,17 +8,18 @@ const AudioRoom = ({ roomId }) => {
     const [isMicOn, setIsMicOn] = useState(true);
     const socketRef = useRef();
     const streamRef = useRef();
-    const audioRef = useRef();  // Initialize audioRef
+    const audioRef = useRef();
 
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
-        
+
         // Request only audio stream (no video)
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
                 streamRef.current = stream;
+                audioRef.current.srcObject = stream; // Set the local audio stream to audioRef
 
-                // Join the room once stream is acquired
+                // Emit 'join room' event once stream is acquired
                 socketRef.current.emit('join room', roomId);
 
                 // Listen for all users in the room
