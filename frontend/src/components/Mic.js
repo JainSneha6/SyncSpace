@@ -1,128 +1,87 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
+import React, { useState, useEffect, useRef } from 'react';
+import io from 'socket.io-client';
 
-const App = () => {
-  const [roomId, setRoomId] = useState('');
-  const [isInRoom, setIsInRoom] = useState(false);
-  const [myStream, setMyStream] = useState(null);
-  const [peerConnection, setPeerConnection] = useState(null);
+const VoiceChat = () => {
+  const [isRecording, setIsRecording] = useState(false);
   const socketRef = useRef(null);
-  const remoteAudioRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioRef = useRef(null);
 
   useEffect(() => {
-    // Connect to the backend via Socket.IO
-    socketRef.current = io('https://paletteconnect.onrender.com');
+    // Connect to Socket.IO server
+    socketRef.current = io('http://localhost:4000');
 
-    // Handle incoming offer, answer, and ICE candidates
-    socketRef.current.on('offer', handleOffer);
-    socketRef.current.on('answer', handleAnswer);
-    socketRef.current.on('ice-candidate', handleNewICECandidate);
+    // Listen for audio streams from other users
+    socketRef.current.on('audio-stream', (data) => {
+      if (audioRef.current) {
+        const blob = new Blob([data], { type: 'audio/webm' });
+        audioRef.current.src = URL.createObjectURL(blob);
+        audioRef.current.play();
+      }
+    });
 
     return () => {
-      if (socketRef.current) socketRef.current.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
     };
   }, []);
 
-  const handleJoinRoom = () => {
-    socketRef.current.emit('join', roomId);
-    setIsInRoom(true);
-    setupLocalStream();
-  };
-
-  const setupLocalStream = async () => {
+  const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setMyStream(stream);
+      mediaRecorderRef.current = new MediaRecorder(stream);
 
-      if (peerConnection) {
-        peerConnection.addStream(stream);
-      }
-
-      // Set up a new RTCPeerConnection for audio call
-      const newPeerConnection = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' }, // Google's public STUN server
-        ],
-      });
-
-      newPeerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          socketRef.current.emit('ice-candidate', event.candidate, roomId);
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0 && socketRef.current) {
+          socketRef.current.emit('audio-data', event.data);
         }
       };
 
-      newPeerConnection.onaddstream = (event) => {
-        remoteAudioRef.current.srcObject = event.stream;
-      };
-
-      newPeerConnection.addStream(stream);
-      setPeerConnection(newPeerConnection);
+      mediaRecorderRef.current.start(100); // Emit data every 100ms
+      setIsRecording(true);
     } catch (err) {
-      console.error('Error accessing media devices.', err);
+      console.error('Error accessing microphone:', err);
     }
   };
 
-  const handleOffer = async (offer) => {
-    if (!peerConnection) return;
-
-    try {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-      socketRef.current.emit('answer', answer, roomId);
-    } catch (error) {
-      console.error('Error handling offer:', error);
-    }
-  };
-
-  const handleAnswer = (answer) => {
-    if (peerConnection) {
-      peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-    }
-  };
-
-  const handleNewICECandidate = (candidate) => {
-    if (peerConnection) {
-      peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-    }
-  };
-
-  const handleCreateOffer = async () => {
-    if (!peerConnection) return;
-
-    try {
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-      socketRef.current.emit('offer', offer, roomId);
-    } catch (error) {
-      console.error('Error creating offer:', error);
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
     }
   };
 
   return (
-    <div>
-      {!isInRoom && (
-        <div>
-          <input
-            type="text"
-            value={roomId}
-            onChange={(e) => setRoomId(e.target.value)}
-            placeholder="Room ID"
-          />
-          <button onClick={handleJoinRoom}>Join Room</button>
-        </div>
-      )}
-
-      {isInRoom && (
-        <div>
-          <button onClick={handleCreateOffer}>Start Audio Call</button>
-          <audio ref={remoteAudioRef} autoPlay></audio>
-        </div>
-      )}
-
-      {myStream && <audio srcObject={myStream} autoPlay muted />}
+    <div className="p-4 text-center">
+      <h1 className="text-2xl mb-4">Real-Time Voice Chat</h1>
+      <div className="flex justify-center space-x-4">
+        <button 
+          onClick={startRecording} 
+          disabled={isRecording}
+          className={`px-4 py-2 rounded ${
+            isRecording 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-green-500 hover:bg-green-600'
+          } text-white`}
+        >
+          Start Recording
+        </button>
+        <button 
+          onClick={stopRecording} 
+          disabled={!isRecording}
+          className={`px-4 py-2 rounded ${
+            !isRecording 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-red-500 hover:bg-red-600'
+          } text-white`}
+        >
+          Stop Recording
+        </button>
+      </div>
+      <audio ref={audioRef} className="mt-4" />
     </div>
   );
 };
 
-export default App;
+export default VoiceChat;
