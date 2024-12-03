@@ -6,12 +6,48 @@ const VoiceCall = () => {
   const socketRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
-  const localTrackRef = useRef(null);
+  const remoteStreamRef = useRef(null);
 
   useEffect(() => {
-    socketRef.current = io('https://paletteconnect.onrender.com');
-    peerConnectionRef.current = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    // Socket connection
+    socketRef.current = io('http://localhost:4000');
+
+    // WebRTC configuration
+    const configuration = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' }
+      ]
+    };
+
+    // Create peer connection
+    peerConnectionRef.current = new RTCPeerConnection(configuration);
+
+    // Handle ICE candidates
+    peerConnectionRef.current.onicecandidate = (event) => {
+      if (event.candidate) {
+        socketRef.current.emit('ice-candidate', event.candidate);
+      }
+    };
+
+    // Handle remote stream
+    peerConnectionRef.current.ontrack = (event) => {
+      remoteStreamRef.current.srcObject = event.streams[0];
+    };
+
+    // Socket event listeners
+    socketRef.current.on('offer', async (offer) => {
+      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await peerConnectionRef.current.createAnswer();
+      await peerConnectionRef.current.setLocalDescription(answer);
+      socketRef.current.emit('answer', answer);
+    });
+
+    socketRef.current.on('answer', (answer) => {
+      peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+    });
+
+    socketRef.current.on('ice-candidate', (candidate) => {
+      peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
     });
 
     return () => {
@@ -23,25 +59,38 @@ const VoiceCall = () => {
   const toggleMic = async () => {
     if (!isMicOn) {
       try {
+        // Get audio stream
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Add tracks to peer connection
+        stream.getTracks().forEach(track => {
+          peerConnectionRef.current.addTrack(track, stream);
+        });
+
+        // Set local stream
         localStreamRef.current.srcObject = stream;
-        localTrackRef.current = stream.getAudioTracks()[0];
-        peerConnectionRef.current.addTrack(localTrackRef.current, stream);
+        
+        // Create offer
+        const offer = await peerConnectionRef.current.createOffer();
+        await peerConnectionRef.current.setLocalDescription(offer);
+        socketRef.current.emit('offer', offer);
+
         setIsMicOn(true);
       } catch (error) {
-        console.error('Mic error:', error);
+        console.error('Mic toggle error:', error);
       }
     } else {
-      if (localTrackRef.current) {
-        localTrackRef.current.stop();
-        peerConnectionRef.current.removeTrack(
-          peerConnectionRef.current.getSenders().find(
-            sender => sender.track === localTrackRef.current
-          )
-        );
-        localStreamRef.current.srcObject = null;
-        setIsMicOn(false);
-      }
+      // Stop all tracks
+      const tracks = localStreamRef.current.srcObject?.getTracks() || [];
+      tracks.forEach(track => track.stop());
+      
+      // Remove tracks from peer connection
+      peerConnectionRef.current.getSenders().forEach(sender => {
+        peerConnectionRef.current.removeTrack(sender);
+      });
+
+      localStreamRef.current.srcObject = null;
+      setIsMicOn(false);
     }
   };
 
@@ -56,6 +105,7 @@ const VoiceCall = () => {
         {isMicOn ? 'Turn Off Mic' : 'Turn On Mic'}
       </button>
       <audio ref={localStreamRef} autoPlay muted />
+      <audio ref={remoteStreamRef} autoPlay />
     </div>
   );
 };
