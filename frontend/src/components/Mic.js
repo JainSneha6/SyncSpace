@@ -19,6 +19,10 @@ const AudioRoom = ({roomId}) => {
             .then(stream => {
                 streamRef.current = stream;
 
+                if(audioRef.current){
+                    audioRef.current.srcObject = stream;
+                }
+
                 socketRef.current.emit('join room', roomId);
 
                 socketRef.current.on('all users', users => {
