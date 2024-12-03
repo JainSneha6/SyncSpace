@@ -1,87 +1,113 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 
-const VoiceChat = () => {
-  const [isRecording, setIsRecording] = useState(false);
+const VoiceCall = () => {
+  const [callStatus, setCallStatus] = useState('Disconnected');
   const socketRef = useRef(null);
-  const mediaRecorderRef = useRef(null);
-  const audioRef = useRef(null);
+  const peerConnectionRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const remoteStreamRef = useRef(null);
 
   useEffect(() => {
-    // Connect to Socket.IO server
+    // Socket.io connection
     socketRef.current = io('https://paletteconnect.onrender.com');
 
-    // Listen for audio streams from other users
-    socketRef.current.on('audio-stream', (data) => {
-      if (audioRef.current) {
-        const blob = new Blob([data], { type: 'audio/webm' });
-        audioRef.current.src = URL.createObjectURL(blob);
-        audioRef.current.play();
+    // WebRTC configuration
+    const configuration = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' }
+      ]
+    };
+
+    // Create peer connection
+    peerConnectionRef.current = new RTCPeerConnection(configuration);
+
+    // Handle ICE candidates
+    peerConnectionRef.current.onicecandidate = (event) => {
+      if (event.candidate) {
+        socketRef.current.emit('ice-candidate', event.candidate);
       }
+    };
+
+    // Handle remote stream
+    peerConnectionRef.current.ontrack = (event) => {
+      remoteStreamRef.current.srcObject = event.streams[0];
+    };
+
+    // Socket event listeners
+    socketRef.current.on('offer', async (offer) => {
+      await peerConnectionRef.current.setRemoteDescription(offer);
+      const answer = await peerConnectionRef.current.createAnswer();
+      await peerConnectionRef.current.setLocalDescription(answer);
+      socketRef.current.emit('answer', answer);
+    });
+
+    socketRef.current.on('answer', (answer) => {
+      peerConnectionRef.current.setRemoteDescription(answer);
+    });
+
+    socketRef.current.on('ice-candidate', (candidate) => {
+      peerConnectionRef.current.addIceCandidate(candidate);
     });
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      socketRef.current.disconnect();
+      peerConnectionRef.current.close();
     };
   }, []);
 
-  const startRecording = async () => {
+  const startCall = async () => {
     try {
+      // Get local audio stream
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      localStreamRef.current.srcObject = stream;
+      
+      // Add tracks to peer connection
+      stream.getTracks().forEach(track => {
+        peerConnectionRef.current.addTrack(track, stream);
+      });
 
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0 && socketRef.current) {
-          socketRef.current.emit('audio-data', event.data);
-        }
-      };
+      // Create offer
+      const offer = await peerConnectionRef.current.createOffer();
+      await peerConnectionRef.current.setLocalDescription(offer);
+      socketRef.current.emit('offer', offer);
 
-      mediaRecorderRef.current.start(100); // Emit data every 100ms
-      setIsRecording(true);
-    } catch (err) {
-      console.error('Error accessing microphone:', err);
+      setCallStatus('Calling');
+    } catch (error) {
+      console.error('Call start error:', error);
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
+  const endCall = () => {
+    // Close connections and reset state
+    peerConnectionRef.current.close();
+    localStreamRef.current.srcObject = null;
+    remoteStreamRef.current.srcObject = null;
+    setCallStatus('Disconnected');
   };
 
   return (
     <div className="p-4 text-center">
-      <h1 className="text-2xl mb-4">Real-Time Voice Chat</h1>
+      <h1 className="text-2xl mb-4">WebRTC Voice Call</h1>
+      <div className="mb-4">Status: {callStatus}</div>
       <div className="flex justify-center space-x-4">
         <button 
-          onClick={startRecording} 
-          disabled={isRecording}
-          className={`px-4 py-2 rounded ${
-            isRecording 
-              ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-green-500 hover:bg-green-600'
-          } text-white`}
+          onClick={startCall}
+          className="bg-green-500 text-white px-4 py-2 rounded"
         >
-          Start Recording
+          Start Call
         </button>
         <button 
-          onClick={stopRecording} 
-          disabled={!isRecording}
-          className={`px-4 py-2 rounded ${
-            !isRecording 
-              ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-red-500 hover:bg-red-600'
-          } text-white`}
+          onClick={endCall}
+          className="bg-red-500 text-white px-4 py-2 rounded"
         >
-          Stop Recording
+          End Call
         </button>
       </div>
-      <audio ref={audioRef} className="mt-4" />
+      <audio ref={localStreamRef} autoPlay muted />
+      <audio ref={remoteStreamRef} autoPlay />
     </div>
   );
 };
 
-export default VoiceChat;
+export default VoiceCall;
