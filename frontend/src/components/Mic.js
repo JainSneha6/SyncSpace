@@ -9,7 +9,7 @@ const VoiceChat = () => {
 
   useEffect(() => {
     // Connect to Socket.IO server
-    socketRef.current = io('http://localhost:4000');
+    socketRef.current = io('https://paletteconnect.onrender.com');
 
     // Listen for audio streams from other users
     socketRef.current.on('audio-stream', (data) => {
