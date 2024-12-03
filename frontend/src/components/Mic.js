@@ -3,8 +3,6 @@ import { FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import Chat from './Chat'; // Import the Chat component
 
 const AudioRoom = () => {
     const [roomId, setRoomId] = useState('');
@@ -12,13 +10,12 @@ const AudioRoom = () => {
     const [isMicOn, setIsMicOn] = useState(true);
     const socketRef = useRef();
     const streamRef = useRef();
-    const peersRef = useRef([]);
-    const navigate = useNavigate();
 
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
 
-        navigator.mediaDevices.getUserMedia({ audio: true }) // Only request audio
+        // Request only audio stream (no video)
+        navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
                 streamRef.current = stream;
 
@@ -28,10 +25,6 @@ const AudioRoom = () => {
                     const peers = [];
                     users.forEach(userId => {
                         const peer = createPeer(userId, socketRef.current.id, stream);
-                        peersRef.current.push({
-                            peerID: userId,
-                            peer,
-                        });
                         peers.push(peer);
                     });
                     setPeers(peers);
@@ -39,15 +32,11 @@ const AudioRoom = () => {
 
                 socketRef.current.on('user joined', payload => {
                     const peer = addPeer(payload.signal, payload.callerID, stream);
-                    peersRef.current.push({
-                        peerID: payload.callerID,
-                        peer,
-                    });
                     setPeers(users => [...users, peer]);
                 });
 
                 socketRef.current.on('receiving returned signal', payload => {
-                    const item = peersRef.current.find(p => p.peerID === payload.id);
+                    const item = peers.find(p => p.peerID === payload.id);
                     item.peer.signal(payload.signal);
                 });
             })
@@ -113,14 +102,10 @@ const AudioRoom = () => {
         // Room ID is already set in state
     };
 
-    const goToWhiteboard = () => {
-        navigate(`/whiteboard/${roomId}`);
-    };
-
     return (
         <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
+            {/* Background Gradient for Visual Appeal */}
             <div className="absolute inset-0 bg-gradient-to-tr from-[#CE4760] via-[#2F4550] to-[#CE4760] opacity-10 pointer-events-none"></div>
-    
             {!roomId ? (
                 <motion.div
                     className="w-full max-w-lg bg-gradient-to-br from-white to-[#F5F5F5] rounded-lg shadow-2xl p-10"
@@ -161,11 +146,18 @@ const AudioRoom = () => {
                         Room ID: <span className="text-[#CE4760]">{roomId}</span>
                     </h2>
     
+                    {/* Dynamic Layout with Split Screen */}
                     <div className="flex flex-col lg:flex-row gap-8">
-                        <div className="flex-1 grid grid-cols-1 gap-6">
+                        {/* Left Side: Audio Section */}
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="relative bg-gray-100 rounded-lg overflow-hidden shadow-md">
+                                <div className="absolute top-0 left-0 bg-[#CE4760] text-white text-sm font-semibold px-3 py-1 rounded-bl-lg">
+                                    You
+                                </div>
+                            </div>
                             {peers.length > 0 ? (
                                 peers.map((peer, index) => (
-                                    <AudioPeer key={index} peer={peer} />
+                                    <Audio key={index} peer={peer} />
                                 ))
                             ) : (
                                 <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg shadow-inner">
@@ -175,6 +167,7 @@ const AudioRoom = () => {
                         </div>
                     </div>
     
+                    {/* Controls */}
                     <div className="flex flex-wrap gap-6 justify-center mt-8">
                         <button
                             onClick={toggleMic}
@@ -187,9 +180,9 @@ const AudioRoom = () => {
             )}
         </div>
     );    
-};    
+};
 
-const AudioPeer = ({ peer }) => {
+const Audio = ({ peer }) => {
     const ref = useRef();
 
     useEffect(() => {
@@ -202,13 +195,9 @@ const AudioPeer = ({ peer }) => {
 
     return (
         <div className="relative">
-            <audio
-                ref={ref}
-                autoPlay
-                controls
-                className="rounded-lg shadow-lg w-full"
-            />
-            <div className="absolute top-0 left-0 bg-gray-700 text-white text-sm font-semibold p-1 rounded-bl-lg">Participant</div>
+            <div className="rounded-lg shadow-lg w-full p-4 bg-gray-100">
+                <div className="text-center text-sm font-semibold">Participant</div>
+            </div>
         </div>
     );
 };
