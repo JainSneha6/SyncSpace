@@ -4,7 +4,8 @@ import { io } from "socket.io-client";
 import { RiBrushFill, RiCircleLine, RiDeleteBinLine, RiEraserFill, RiPaintFill, RiPaletteFill, RiRectangleLine, RiShapesFill, RiStickyNoteFill, RiTriangleFill, RiTriangleLine } from "react-icons/ri";
 import { TbOvalVertical } from 'react-icons/tb';
 import { BiPolygon, BiStar } from 'react-icons/bi';
-import { FaArrowsAltH, FaGripLines, FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
+import { FaArrowsAltH, FaGripLines, FaMicrophone, FaMicrophoneSlash, FaPalette } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import Chat from "./Chat";
 import StickyNote from './StickyNote';
 import AudioRoom from "./Mic";
@@ -21,6 +22,7 @@ const Canvas = () => {
   const [sides, setSides] = useState(5);
   const colorInputRef = useRef(null);
   const [stickyNotes, setStickyNotes] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
 
@@ -518,11 +520,23 @@ const Canvas = () => {
     const bigint = parseInt(hex.slice(1), 16);
     return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255, 255];
   };
+
+  const goToPptViewer = () => {
+    navigate(`/ppt/${roomId}`);
+  };
   
   return (
     <div className="min-h-screen bg-pink-600 flex">
       <div className="bg-white shadow-xl rounded-r-lg p-4 flex flex-col gap-4">
+      <button
+        onClick={goToPptViewer}
+        className="bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300">
+        <FaPalette className="inline-block mr-2" />
+          PPT Viewer
+      </button>
+
       <AudioRoom roomId={roomId} />
+      
         <button
           onClick={() => setTool("brush")}
           className={`p-3 rounded-full shadow-md transition-all ${tool === "brush" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
@@ -678,6 +692,7 @@ const Canvas = () => {
         ))}
 
       </div>
+
       <div className="w-1/3 bg-white shadow-xl rounded-l-lg p-4">
         <Chat socketRef={socketRef} roomId={roomId} height={'400px'} />
       </div>

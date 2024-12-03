@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Whiteboard from './components/Whiteboard';
 import VideoRoom from './components/VideoRoom';
 import AudioRoom from './components/Mic';
+import PptViewer from './components/PptViewer';
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Route path="/" element={<VideoRoom/>} />
         <Route path="/whiteboard/:roomId" element={<Whiteboard />} />
         <Route path="/mic" element={<AudioRoom/>} />
+        <Route path="/ppt/:roomId" element={<PptViewer/>} />
       </Routes>
     </Router>
   );
