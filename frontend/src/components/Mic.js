@@ -2,23 +2,26 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
-import { motion } from 'framer-motion';
 
 const AudioRoom = ({ roomId }) => {
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
     const socketRef = useRef();
     const streamRef = useRef();
+    const audioRef = useRef();  // Initialize audioRef
 
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
-
+        
         // Request only audio stream (no video)
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
                 streamRef.current = stream;
+
+                // Join the room once stream is acquired
                 socketRef.current.emit('join room', roomId);
 
+                // Listen for all users in the room
                 socketRef.current.on('all users', users => {
                     const peers = [];
                     users.forEach(userId => {
@@ -28,14 +31,16 @@ const AudioRoom = ({ roomId }) => {
                     setPeers(peers);
                 });
 
+                // Handle new user joining
                 socketRef.current.on('user joined', payload => {
                     const peer = addPeer(payload.signal, payload.callerID, stream);
                     setPeers(users => [...users, peer]);
                 });
 
+                // Handle receiving returned signal
                 socketRef.current.on('receiving returned signal', payload => {
-                    const item = peers.find(p => p.peerID === payload.id);
-                    item.peer.signal(payload.signal);
+                    const peer = peers.find(p => p.peerID === payload.id);
+                    peer.peer.signal(payload.signal);
                 });
             })
             .catch(err => {
@@ -71,6 +76,7 @@ const AudioRoom = ({ roomId }) => {
             socketRef.current.emit('sending signal', { userToSignal, callerID, signal });
         });
 
+        peer.peerID = userToSignal;
         return peer;
     };
 
@@ -87,30 +93,26 @@ const AudioRoom = ({ roomId }) => {
 
         peer.signal(incomingSignal);
 
+        peer.peerID = callerID;
         return peer;
     };
 
     return (
         <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
-            {/* Background Gradient for Visual Appeal */}
             <div className="absolute inset-0 bg-gradient-to-tr from-[#CE4760] via-[#2F4550] to-[#CE4760] opacity-10 pointer-events-none"></div>
 
-            <motion.div
-                className="w-full max-w-7xl bg-white rounded-lg shadow-2xl p-10"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}>
+            <div className="w-full max-w-7xl bg-white rounded-lg shadow-2xl p-10">
                 <h2 className="text-2xl font-semibold text-center mb-6">
                     Room ID: <span className="text-[#CE4760]">{roomId}</span>
                 </h2>
 
-                {/* Dynamic Layout with Split Screen */}
                 <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Left Side: Audio Section */}
                     <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="relative bg-gray-100 rounded-lg overflow-hidden shadow-md">
                             <div className="absolute top-0 left-0 bg-[#CE4760] text-white text-sm font-semibold px-3 py-1 rounded-bl-lg">
                                 You
                             </div>
+                            <audio ref={audioRef} autoPlay muted />
                         </div>
                         {peers.length > 0 ? (
                             peers.map((peer, index) => (
@@ -124,7 +126,6 @@ const AudioRoom = ({ roomId }) => {
                     </div>
                 </div>
 
-                {/* Controls */}
                 <div className="flex flex-wrap gap-6 justify-center mt-8">
                     <button
                         onClick={toggleMic}
@@ -133,7 +134,7 @@ const AudioRoom = ({ roomId }) => {
                         {isMicOn ? "Mute" : "Unmute"}
                     </button>
                 </div>
-            </motion.div>
+            </div>
         </div>
     );
 };
@@ -151,9 +152,7 @@ const Audio = ({ peer }) => {
 
     return (
         <div className="relative">
-            <div className="rounded-lg shadow-lg w-full p-4 bg-gray-100">
-                <div className="text-center text-sm font-semibold">Participant</div>
-            </div>
+            <audio ref={ref} autoPlay />
         </div>
     );
 };
