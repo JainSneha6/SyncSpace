@@ -212,36 +212,57 @@
 // server.listen(PORT, () => {
 //   console.log(`Server is running on port ${PORT}`);
 // });
+
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
-  cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
+  cors: { origin: "*" }
 });
 
-app.use(cors());
+const users = {};
 
 io.on('connection', (socket) => {
-  console.log('New client connected');
+  socket.on('join-room', (roomId, userId) => {
+    // Add user to room
+    if (!users[roomId]) {
+      users[roomId] = [];
+    }
+    users[roomId].push({ id: userId, socketId: socket.id });
 
-  // Broadcast audio chunks to all other clients
-  socket.on('audio-data', (data) => {
-    socket.broadcast.emit('audio-stream', data);
+    // Broadcast to other users in room
+    socket.join(roomId);
+    socket.to(roomId).emit('user-connected', userId);
+
+    // Send existing users to new user
+    socket.emit('existing-users', users[roomId].map(user => user.id));
+  });
+
+  socket.on('offer', (roomId, offer, targetUserId) => {
+    socket.to(roomId).emit('offer', offer, socket.id);
+  });
+
+  socket.on('answer', (roomId, answer, targetUserId) => {
+    socket.to(roomId).emit('answer', answer, socket.id);
+  });
+
+  socket.on('ice-candidate', (roomId, candidate) => {
+    socket.to(roomId).emit('ice-candidate', candidate, socket.id);
   });
 
   socket.on('disconnect', () => {
-    console.log('Client disconnected');
+    // Remove user from rooms
+    for (const roomId in users) {
+      users[roomId] = users[roomId].filter(user => user.socketId !== socket.id);
+      socket.to(roomId).emit('user-disconnected', socket.id);
+    }
   });
 });
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Signaling server running on port ${PORT}`);
 });
