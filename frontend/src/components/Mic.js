@@ -2,52 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 
 const VoiceCall = () => {
-  const [callStatus, setCallStatus] = useState('Disconnected');
+  const [isMicOn, setIsMicOn] = useState(false);
   const socketRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
-  const remoteStreamRef = useRef(null);
+  const localTrackRef = useRef(null);
 
   useEffect(() => {
-    // Socket.io connection
     socketRef.current = io('https://paletteconnect.onrender.com');
-
-    // WebRTC configuration
-    const configuration = {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' }
-      ]
-    };
-
-    // Create peer connection
-    peerConnectionRef.current = new RTCPeerConnection(configuration);
-
-    // Handle ICE candidates
-    peerConnectionRef.current.onicecandidate = (event) => {
-      if (event.candidate) {
-        socketRef.current.emit('ice-candidate', event.candidate);
-      }
-    };
-
-    // Handle remote stream
-    peerConnectionRef.current.ontrack = (event) => {
-      remoteStreamRef.current.srcObject = event.streams[0];
-    };
-
-    // Socket event listeners
-    socketRef.current.on('offer', async (offer) => {
-      await peerConnectionRef.current.setRemoteDescription(offer);
-      const answer = await peerConnectionRef.current.createAnswer();
-      await peerConnectionRef.current.setLocalDescription(answer);
-      socketRef.current.emit('answer', answer);
-    });
-
-    socketRef.current.on('answer', (answer) => {
-      peerConnectionRef.current.setRemoteDescription(answer);
-    });
-
-    socketRef.current.on('ice-candidate', (candidate) => {
-      peerConnectionRef.current.addIceCandidate(candidate);
+    peerConnectionRef.current = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     });
 
     return () => {
@@ -56,56 +20,42 @@ const VoiceCall = () => {
     };
   }, []);
 
-  const startCall = async () => {
-    try {
-      // Get local audio stream
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      localStreamRef.current.srcObject = stream;
-      
-      // Add tracks to peer connection
-      stream.getTracks().forEach(track => {
-        peerConnectionRef.current.addTrack(track, stream);
-      });
-
-      // Create offer
-      const offer = await peerConnectionRef.current.createOffer();
-      await peerConnectionRef.current.setLocalDescription(offer);
-      socketRef.current.emit('offer', offer);
-
-      setCallStatus('Calling');
-    } catch (error) {
-      console.error('Call start error:', error);
+  const toggleMic = async () => {
+    if (!isMicOn) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        localStreamRef.current.srcObject = stream;
+        localTrackRef.current = stream.getAudioTracks()[0];
+        peerConnectionRef.current.addTrack(localTrackRef.current, stream);
+        setIsMicOn(true);
+      } catch (error) {
+        console.error('Mic error:', error);
+      }
+    } else {
+      if (localTrackRef.current) {
+        localTrackRef.current.stop();
+        peerConnectionRef.current.removeTrack(
+          peerConnectionRef.current.getSenders().find(
+            sender => sender.track === localTrackRef.current
+          )
+        );
+        localStreamRef.current.srcObject = null;
+        setIsMicOn(false);
+      }
     }
   };
 
-  const endCall = () => {
-    // Close connections and reset state
-    peerConnectionRef.current.close();
-    localStreamRef.current.srcObject = null;
-    remoteStreamRef.current.srcObject = null;
-    setCallStatus('Disconnected');
-  };
-
   return (
-    <div className="p-4 text-center">
-      <h1 className="text-2xl mb-4">WebRTC Voice Call</h1>
-      <div className="mb-4">Status: {callStatus}</div>
-      <div className="flex justify-center space-x-4">
-        <button 
-          onClick={startCall}
-          className="bg-green-500 text-white px-4 py-2 rounded"
-        >
-          Start Call
-        </button>
-        <button 
-          onClick={endCall}
-          className="bg-red-500 text-white px-4 py-2 rounded"
-        >
-          End Call
-        </button>
-      </div>
+    <div className="text-center p-4">
+      <button 
+        onClick={toggleMic}
+        className={`px-4 py-2 rounded text-white ${
+          isMicOn ? 'bg-red-500' : 'bg-green-500'
+        }`}
+      >
+        {isMicOn ? 'Turn Off Mic' : 'Turn On Mic'}
+      </button>
       <audio ref={localStreamRef} autoPlay muted />
-      <audio ref={remoteStreamRef} autoPlay />
     </div>
   );
 };

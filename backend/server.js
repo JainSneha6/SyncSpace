@@ -216,8 +216,11 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
+const cors = require('cors');
 
 const app = express();
+app.use(cors());
+
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
@@ -229,7 +232,7 @@ const io = socketIo(server, {
 io.on('connection', (socket) => {
   console.log('Client connected');
 
-  // Signaling for WebRTC
+  // Signaling methods for WebRTC connection establishment
   socket.on('offer', (offer) => {
     socket.broadcast.emit('offer', offer);
   });
