@@ -57,7 +57,7 @@ function PresentationViewer() {
     formData.append('roomId', roomId);
 
     try {
-      const response = await axios.post('https://paletteconnect.onrender.com/uploadPpt', formData, {
+      const response = await axios.post('http://localhost:5001/uploadPpt', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
@@ -93,21 +93,26 @@ function PresentationViewer() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#2F4550] text-white">
+    <div className="min-h-screen bg-white text-white flex flex-col items-center justify-center p-6 relative">
+      {/* Background Gradient for Visual Appeal */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-[#CE4760] via-[#2F4550] to-[#CE4760] opacity-10 pointer-events-none"></div>
+
       {!imageUrls.length && (
-        <div className="w-full max-w-lg bg-gradient-to-br from-[#2F4550] to-[#CE4760] rounded-lg shadow-2xl p-10 text-center">
-          <h2 className="text-3xl font-bold mb-6">Upload a Presentation</h2>
+        <div className="w-full max-w-lg bg-gradient-to-br from-white to-[#F5F5F5] rounded-lg shadow-2xl p-10">
+          <h2 className="text-3xl font-semibold text-center mb-6 text-[#2F4550]">
+            Upload a PowerPoint Presentation
+          </h2>
           <div className="flex flex-col gap-6">
             <input
               type="file"
               onChange={handleFileChange}
               accept=".ppt,.pptx"
-              className="w-full p-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#CE4760] text-black"
+              className="w-full p-4 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#CE4760] text-lg"
             />
             <button
               onClick={handleFileUpload}
               disabled={loading}
-              className="w-full bg-[#CE4760] py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300 disabled:opacity-50"
+              className="w-full bg-[#CE4760] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300 disabled:opacity-50"
             >
               {loading ? 'Processing...' : 'Upload'}
             </button>
@@ -116,40 +121,42 @@ function PresentationViewer() {
       )}
 
       {imageUrls.length > 0 && (
-        <div className="w-full max-w-7xl bg-white text-[#2F4550] rounded-lg shadow-2xl p-10">
-          <AudioRoom roomId={roomId} />
-          <div className="relative flex flex-col items-center justify-center gap-4">
-            <h2 className="text-xl lg:text-2xl font-semibold mb-4">
-              Slide <span className="text-[#CE4760]">{currentIndex + 1}</span> of {imageUrls.length}
-            </h2>
+        <div className="w-full max-w-5xl bg-[#2F4550] rounded-lg shadow-2xl p-10 flex flex-col lg:flex-row gap-8">
+          <div className="flex-1">
+            <AudioRoom roomId={roomId} />
+            <div className="relative flex flex-col items-center justify-center gap-4">
+              <h2 className="text-xl lg:text-2xl font-semibold mb-4">
+                Slide <span className="text-[#CE4760]">{currentIndex + 1}</span> of {imageUrls.length}
+              </h2>
 
-            <div className="relative w-full flex items-center justify-between">
-              <button
-                onClick={prevImage}
-                disabled={currentIndex === 0}
-                className="absolute left-0 z-10 bg-[#CE4760] text-white p-3 rounded-full disabled:opacity-30"
-              >
-                ←
-              </button>
+              <div className="relative w-full flex items-center justify-between">
+                <button
+                  onClick={prevImage}
+                  disabled={currentIndex === 0}
+                  className="absolute left-0 z-10 bg-[#CE4760] text-white p-3 rounded-full disabled:opacity-30"
+                >
+                  ←
+                </button>
 
-              <img
-                src={imageUrls[currentIndex]}
-                alt={`Slide ${currentIndex + 1}`}
-                className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-lg"
-              />
+                <img
+                  src={imageUrls[currentIndex]}
+                  alt={`Slide ${currentIndex + 1}`}
+                  className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-lg"
+                />
 
-              <button
-                onClick={nextImage}
-                disabled={currentIndex === imageUrls.length - 1}
-                className="absolute right-0 z-10 bg-[#CE4760] text-white p-3 rounded-full disabled:opacity-30"
-              >
-                →
-              </button>
+                <button
+                  onClick={nextImage}
+                  disabled={currentIndex === imageUrls.length - 1}
+                  className="absolute right-0 z-10 bg-[#CE4760] text-white p-3 rounded-full disabled:opacity-30"
+                >
+                  →
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="mt-6">
-            <Chat socketRef={socketRef} roomId={roomId} height={"400px"} />
+          <div className="w-full lg:w-1/3 bg-[#2F4550] rounded-lg shadow-md p-6 text-black">
+            <Chat socketRef={socketRef} roomId={roomId} height={'400px'} />
           </div>
         </div>
       )}
