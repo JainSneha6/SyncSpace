@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const multer = require('multer');
 
 const app = express();
 app.use(cors());
@@ -14,13 +15,55 @@ const io = new Server(server, {
   },
 });
 
-const PORT = 5000;
+const storage = multer.memoryStorage();  // Store the file in memory (you can configure this to save to disk)
+const upload = multer({ storage: storage });
+
+const PORT = 5001;
 
 const rooms = new Map();
 const drawingrooms = {};
 const roomMessages = {};
 const stickyNotesPerRoom = {};
 let stickyNotes = [];
+let pptData = {};
+
+app.post('/uploadPpt', upload.single('file'), async (req, res) => {
+  const { roomId } = req.body;  // Extract roomId from request body
+  const pptFile = req.file;     // Access the uploaded file via req.file
+  
+  if (!pptFile) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  if (!roomId) {
+    return res.status(400).json({ error: 'Room ID is required' });
+  }
+
+  try {
+    // Sending pptFile to Flask backend for processing (as before)
+    const formData = new FormData();
+    formData.append('file', pptFile.buffer, pptFile.originalname);
+    
+    const response = await axios.post('http://localhost:5000/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    const { slides, folder, pdf } = response.data;
+
+    // Save the slides info in memory
+    pptData[roomId] = { slides, folder, pdf };
+
+    // Broadcast the slides to all users in the room
+    io.to(roomId).emit('pptUploaded', pptData[roomId]);
+
+    res.status(200).json({ slides, folder, pdf });
+  } catch (error) {
+    console.error('Error uploading PPT:', error);
+    res.status(500).json({ error: 'Failed to upload PPT' });
+  }
+});
 
 io.on('connection', (socket) => {
   console.log('A user connected');
@@ -74,8 +117,17 @@ io.on('connection', (socket) => {
     } else {
       stickyNotesPerRoom[roomId] = []; // Initialize if not present
     }
+
+    if (pptData[roomId]) {
+      socket.emit('pptUploaded', pptData[roomId]);
+    }
   });
 
+  socket.on('slideChange', (newIndex) => {
+    const roomId = socket.id; // Can use roomId for better scalability if needed
+    console.log(`Slide changed to index ${newIndex}`);
+    socket.to(roomId).emit('slideChange', newIndex); // Emit to others in the same room
+  });
 
   socket.on('drawing', (data) => {
     const { roomId, ...drawingData } = data;
