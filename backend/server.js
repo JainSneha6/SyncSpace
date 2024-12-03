@@ -216,10 +216,18 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
+const cors = require('cors');  // Importing CORS package
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
+
+// CORS configuration
+app.use(cors({
+  origin: 'http://localhost:3000', // Replace with your frontend's URL
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+}));
 
 // Serve the frontend React app (optional)
 app.use(express.static('public'));
