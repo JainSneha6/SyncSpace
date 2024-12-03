@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 import { RiBrushFill, RiCircleLine, RiDeleteBinLine, RiEraserFill, RiPaintFill, RiPaletteFill, RiRectangleLine, RiShapesFill, RiStickyNoteFill, RiTriangleFill, RiTriangleLine } from "react-icons/ri";
 import { TbOvalVertical } from 'react-icons/tb';
 import { BiPolygon, BiStar } from 'react-icons/bi';
-import { FaArrowsAltH, FaGripLines, FaMicrophone, FaMicrophoneSlash, FaPalette } from "react-icons/fa";
+import { FaArrowsAltH, FaFilePowerpoint, FaGripLines, FaMicrophone, FaMicrophoneSlash, FaPalette } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Chat from "./Chat";
 import StickyNote from './StickyNote';
@@ -526,178 +526,118 @@ const Canvas = () => {
   };
   
   return (
-    <div className="min-h-screen bg-pink-600 flex">
-      <div className="bg-white shadow-xl rounded-r-lg p-4 flex flex-col gap-4">
-      <button
-        onClick={goToPptViewer}
-        className="bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300">
-        <FaPalette className="inline-block mr-2" />
-          PPT Viewer
-      </button>
+    <div className="min-h-screen bg-[#2F4550] flex flex-col lg:flex-row">
+  {/* Toolbar Section */}
+  <div className="bg-[#2F4550] shadow-xl lg:rounded-r-lg p-4 flex flex-col gap-4 w-full lg:w-auto lg:min-w-[120px]">
+    {/* PPT Viewer Button */}
+    <button
+      onClick={goToPptViewer}
+      className="bg-[#CE4760] text-white py-2 px-4 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+    >
+      <FaFilePowerpoint className="inline-block mr-2" />
+      PPT
+    </button>
 
-      <AudioRoom roomId={roomId} />
-      
+    {/* Audio Room */}
+    <AudioRoom roomId={roomId} />
+
+    {/* Tool Buttons */}
+    <div className="grid grid-cols-3 lg:grid-cols-2 gap-4">
+      {[
+        { tool: "brush", icon: <RiBrushFill className="text-xl" /> },
+        { tool: "eraser", icon: <RiEraserFill className="text-xl" /> },
+        { tool: "circle", icon: <RiCircleLine className="text-xl" /> },
+        { tool: "rectangle", icon: <RiRectangleLine className="text-xl" /> },
+        { tool: "triangle", icon: <RiTriangleLine className="text-xl" /> },
+        { tool: "line", icon: <FaGripLines className="text-xl" /> },
+        { tool: "ellipse", icon: <TbOvalVertical className="text-xl" /> },
+        { tool: "polygon", icon: <BiPolygon className="text-xl" /> },
+        { tool: "star", icon: <BiStar className="text-xl" /> },
+        { tool: "arrow", icon: <FaArrowsAltH className="text-xl" /> },
+        { tool: "fill", icon: <RiPaintFill className="text-xl" /> },
+        { tool: "stickyNote", icon: <RiStickyNoteFill className="text-xl" /> },
+      ].map(({ tool, icon }) => (
         <button
-          onClick={() => setTool("brush")}
-          className={`p-3 rounded-full shadow-md transition-all ${tool === "brush" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-            }`}
+          key={tool}
+          onClick={() => setTool(tool)}
+          className={`p-3 rounded-full shadow-md transition-all ${
+            tool === tool
+              ? "bg-[#CE4760] text-white"
+              : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"
+          }`}
         >
-          <RiBrushFill className="text-xl" />
+          {icon}
         </button>
-
-        <button
-          onClick={() => setTool("eraser")}
-          className={`p-3 rounded-full shadow-md transition-all ${tool === "eraser" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-            }`}
-        >
-          <RiEraserFill className="text-xl" />
-        </button>
-
-        <div className="flex gap-8">
-          <button
-            onClick={() => setTool("circle")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "circle" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-              }`}
-          >
-            <RiCircleLine className="text-xl" />
-          </button>
-
-          <button
-            onClick={() => setTool("rectangle")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "rectangle" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-              }`}
-          >
-            <RiRectangleLine className="text-xl" />
-          </button>
-        </div>
-
-        <div className="flex gap-8 mt-2">
-          <button
-            onClick={() => setTool("triangle")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "triangle" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-              }`}
-          >
-            <RiTriangleLine className="text-xl" />
-          </button>
-
-          <button
-            onClick={() => setTool("line")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "line" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-              }`}
-          >
-            <FaGripLines className="text-xl" />
-          </button>
-        </div>
-
-        <div className="flex gap-8 mt-2">
-          <button
-            onClick={() => setTool("ellipse")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "ellipse" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-              }`}
-          >
-            <TbOvalVertical className="text-xl" />
-          </button>
-
-          <button
-            onClick={() => setTool("polygon")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "polygon" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-              }`}
-          >
-            <BiPolygon className="text-xl" />
-          </button>
-        </div>
-
-        <div className="flex gap-8 mt-2">
-          <button
-            onClick={() => setTool("star")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "star" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-              }`}
-          >
-            <BiStar className="text-xl" />
-          </button>
-          <button
-            onClick={() => setTool("arrow")}
-            className={`p-3 rounded-full shadow-md transition-all ${tool === "arrow" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"
-              }`}
-          >
-            <FaArrowsAltH className="text-xl" />
-          </button>
-        </div>
-
-        <button
-          onClick={handleColorClick}
-          className="p-2 rounded-full bg-pink-600 text-white hover:bg-pink-700"
-        >
-          <RiPaletteFill className="text-xl" />
-        </button>
-        <input
-          type="color"
-          ref={colorInputRef}
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-          className="hidden"
-        />
-
-        <input
-          type="range"
-          min="1"
-          max="50"
-          value={brushWidth}
-          onChange={(e) => setBrushWidth(Number(e.target.value))}
-          className="accent-pink-600"
-        />
-
-        <button
-          onClick={() => setTool("fill")}
-          className={`p-3 rounded-full shadow-md transition-all ${tool === "fill" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"}`}
-        >
-          <RiPaintFill className="text-xl" />
-        </button>
-
-
-        <button
-          onClick={() => setTool("stickyNote")}
-          className={`p-3 rounded-full shadow-md transition-all ${tool === "stickyNote" ? "bg-pink-600 text-white" : "bg-white text-pink-600 hover:bg-pink-600 hover:text-white"}`}
-        >
-          <RiStickyNoteFill className="text-xl" />
-        </button>
-
-        <button
-          onClick={clearCanvas}
-          className="p-3 rounded-full bg-white text-pink-600 shadow-md transition-all hover:bg-pink-600 hover:text-white"
-        >
-          <RiDeleteBinLine className="text-xl" />
-        </button>
-      </div>
-
-      <div className="relative bg-white rounded-lg shadow-xl overflow-hidden flex-grow m-8" >
-        <canvas
-          ref={canvasRef}
-          width={1310}
-          height={662}
-          className="border-2 border-pink-600 rounded-lg"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-        />
-
-        {stickyNotes.map((note) => (
-          <StickyNote
-            key={note.id}
-            noteData={note}
-            onUpdateNote={updateStickyNote}
-            onDeleteNote={deleteStickyNote}
-            onCreateNewNote={handleCreateNewNote}
-          />
-        ))}
-
-      </div>
-
-      <div className="w-1/3 bg-white shadow-xl rounded-l-lg p-4">
-        <Chat socketRef={socketRef} roomId={roomId} height={'400px'} />
-      </div>
+      ))}
     </div>
+
+    {/* Additional Options */}
+    <div className="flex flex-wrap gap-4 mt-4 justify-center">
+      {/* Color Picker */}
+      <button
+        onClick={handleColorClick}
+        className="p-2 rounded-full bg-[#CE4760] text-white hover:bg-pink-700"
+      >
+        <RiPaletteFill className="text-xl" />
+      </button>
+      <input
+        type="color"
+        ref={colorInputRef}
+        value={color}
+        onChange={(e) => setColor(e.target.value)}
+        className="hidden"
+      />
+
+      {/* Brush Width */}
+      <input
+        type="range"
+        min="1"
+        max="50"
+        value={brushWidth}
+        onChange={(e) => setBrushWidth(Number(e.target.value))}
+        className="w-full accent-[#CE4760]"
+      />
+
+      {/* Clear Button */}
+      <button
+        onClick={clearCanvas}
+        className="p-3 rounded-full bg-white text-[#CE4760] shadow-md transition-all hover:bg-[#CE4760] hover:text-white"
+      >
+        <RiDeleteBinLine className="text-xl" />
+      </button>
+    </div>
+  </div>
+
+  {/* Canvas Section */}
+  <div className="flex-grow bg-white shadow-xl rounded-lg m-4 relative flex justify-center items-center">
+    <canvas
+      ref={canvasRef}
+      width={900}
+      height={662}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+    />
+
+    {/* Sticky Notes */}
+    {stickyNotes.map((note) => (
+      <StickyNote
+        key={note.id}
+        noteData={note}
+        onUpdateNote={updateStickyNote}
+        onDeleteNote={deleteStickyNote}
+        onCreateNewNote={handleCreateNewNote}
+      />
+    ))}
+  </div>
+
+  {/* Chat Section */}
+  <div className="w-full lg:w-1/3 bg-[#2F4550] shadow-xl lg:rounded-l-lg p-4">
+    <Chat socketRef={socketRef} roomId={roomId} height={"400px"} />
+  </div>
+</div>
+
   );
-};
+};  
 
 export default Canvas;

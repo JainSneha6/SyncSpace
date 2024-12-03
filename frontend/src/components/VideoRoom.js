@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaCamera, FaUserPlus, FaMicrophone, FaMicrophoneSlash, FaPalette } from 'react-icons/fa';
+import { FaCamera, FaUserPlus, FaMicrophone, FaMicrophoneSlash, FaPalette, FaFilePowerpoint } from 'react-icons/fa';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
@@ -130,25 +130,14 @@ const VideoRoom = () => {
         navigate(`/whiteboard/${roomId}`);
     };
 
+    const goToPptViewer = () => {
+        navigate(`/ppt/${roomId}`);
+    };
+
     return (
         <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
             {/* Background Gradient for Visual Appeal */}
             <div className="absolute inset-0 bg-gradient-to-tr from-[#CE4760] via-[#2F4550] to-[#CE4760] opacity-10 pointer-events-none"></div>
-    
-            {/* Main Header Section */}
-            <header className="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center mb-12 z-10">
-                <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#CE4760] to-[#2F4550] tracking-wide mb-4 md:mb-0">
-                    SyncSpace
-                </h1>
-                <div className="flex gap-6">
-                    <button
-                        onClick={goToWhiteboard}
-                        className="bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300">
-                        <FaPalette className="inline-block mr-2" />
-                        Whiteboard
-                    </button>
-                </div>
-            </header>
     
             {/* Room Creation or Join Section */}
             {!roomId ? (
@@ -240,6 +229,20 @@ const VideoRoom = () => {
                             {isCameraOn ? <FaCamera className="inline-block mr-2" /> : <FaCamera className="inline-block mr-2 opacity-50" />}
                             {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                         </button>
+                        <div className="flex gap-6">
+                        <button
+                            onClick={goToWhiteboard}
+                            className="bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
+                            <FaPalette className="inline-block mr-2" />
+                            Whiteboard
+                        </button>
+                        <button
+                            onClick={goToPptViewer}
+                            className="bg-[#2F4550] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
+                            <FaFilePowerpoint className="inline-block mr-2" />
+                            PptViewer
+                        </button>
+                </div>
                     </div>
                 </motion.div>
             )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
+import { FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 
 const VoiceCall = () => {
   const [isMicOn, setIsMicOn] = useState(false);
@@ -98,11 +99,17 @@ const VoiceCall = () => {
     <div className="text-center p-4">
       <button 
         onClick={toggleMic}
-        className={`px-4 py-2 rounded text-white ${
-          isMicOn ? 'bg-red-500' : 'bg-green-500'
-        }`}
+        className={`bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300`}
       >
-        {isMicOn ? 'Turn Off Mic' : 'Turn On Mic'}
+        {isMicOn ? (
+          <>
+            <FaMicrophoneSlash className="text-lg" />
+          </>
+        ) : (
+          <>
+            <FaMicrophone className="text-lg" />
+          </>
+        )}
       </button>
       <audio ref={localStreamRef} autoPlay muted />
       <audio ref={remoteStreamRef} autoPlay />
