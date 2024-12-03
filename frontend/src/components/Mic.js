@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaCamera, FaUserPlus, FaMicrophone, FaMicrophoneSlash, FaPalette } from 'react-icons/fa';
+import { FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
 
-const AudioRoom = ({roomId}) => {
+const AudioRoom = ({ roomId }) => {
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
     const socketRef = useRef();
@@ -15,16 +15,19 @@ const AudioRoom = ({roomId}) => {
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
 
+        // Get user media (audio only)
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
                 streamRef.current = stream;
 
-                if(audioRef.current){
+                // Set the local stream to play through the local audio element
+                if (audioRef.current) {
                     audioRef.current.srcObject = stream;
                 }
 
                 socketRef.current.emit('join room', roomId);
 
+                // Handle when all users join the room
                 socketRef.current.on('all users', users => {
                     const peers = [];
                     users.forEach(userId => {
@@ -38,6 +41,7 @@ const AudioRoom = ({roomId}) => {
                     setPeers(peers);
                 });
 
+                // Handle when a new user joins the room
                 socketRef.current.on('user joined', payload => {
                     const peer = addPeer(payload.signal, payload.callerID, stream);
                     peersRef.current.push({
@@ -47,6 +51,7 @@ const AudioRoom = ({roomId}) => {
                     setPeers(users => [...users, peer]);
                 });
 
+                // Handle the signal return from the new user
                 socketRef.current.on('receiving returned signal', payload => {
                     const item = peersRef.current.find(p => p.peerID === payload.id);
                     item.peer.signal(payload.signal);
@@ -78,11 +83,18 @@ const AudioRoom = ({roomId}) => {
         const peer = new Peer({
             initiator: true,
             trickle: false,
-            stream,
+            stream: stream,
         });
 
         peer.on('signal', signal => {
             socketRef.current.emit('sending signal', { userToSignal, callerID, signal });
+        });
+
+        // Handle incoming peer stream
+        peer.on('stream', remoteStream => {
+            const audioElement = document.createElement('audio');
+            audioElement.srcObject = remoteStream;
+            audioElement.play();
         });
 
         return peer;
@@ -92,7 +104,7 @@ const AudioRoom = ({roomId}) => {
         const peer = new Peer({
             initiator: false,
             trickle: false,
-            stream,
+            stream: stream,
         });
 
         peer.on('signal', signal => {
@@ -101,6 +113,13 @@ const AudioRoom = ({roomId}) => {
 
         peer.signal(incomingSignal);
 
+        // Handle incoming peer stream
+        peer.on('stream', remoteStream => {
+            const audioElement = document.createElement('audio');
+            audioElement.srcObject = remoteStream;
+            audioElement.play();
+        });
+
         return peer;
     };
 
@@ -108,57 +127,55 @@ const AudioRoom = ({roomId}) => {
         <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
             {/* Background Gradient for Visual Appeal */}
             <div className="absolute inset-0 bg-gradient-to-tr from-[#CE4760] via-[#2F4550] to-[#CE4760] opacity-10 pointer-events-none"></div>
-                <motion.div
-                    className="w-full max-w-7xl bg-white rounded-lg shadow-2xl p-10"
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}>
-                    <h2 className="text-2xl font-semibold text-center mb-6">
-                        Room ID: <span className="text-[#CE4760]">{roomId}</span>
-                    </h2>
-    
-                    {/* Dynamic Layout with Split Screen */}
-                    <div className="flex flex-col lg:flex-row gap-8">
-                        {/* Left Side: Video Section */}
-                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div className="relative bg-gray-100 rounded-lg overflow-hidden shadow-md">
-                                <audio
-                                    playsInline
-                                    muted
-                                    ref={audioRef}
-                                    autoPlay
-                                    className="w-full h-full object-cover"
-                                />
-                                <div className="absolute top-0 left-0 bg-[#CE4760] text-white text-sm font-semibold px-3 py-1 rounded-bl-lg">
-                                    You
-                                </div>
-                            </div>
-                            {peers.length > 0 ? (
-                                peers.map((peer, index) => (
-                                    <Audio key={index} peer={peer} />
-                                ))
-                            ) : (
-                                <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg shadow-inner">
-                                    <p className="text-gray-500">Waiting for participants...</p>
-                                </div>
-                            )}
-                        </div>
+            <motion.div
+                className="w-full max-w-7xl bg-white rounded-lg shadow-2xl p-10"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}>
+                <h2 className="text-2xl font-semibold text-center mb-6">
+                    Room ID: <span className="text-[#CE4760]">{roomId}</span>
+                </h2>
 
+                {/* Dynamic Layout with Split Screen */}
+                <div className="flex flex-col lg:flex-row gap-8">
+                    {/* Left Side: Audio Section */}
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="relative bg-gray-100 rounded-lg overflow-hidden shadow-md">
+                            <audio
+                                playsInline
+                                muted
+                                ref={audioRef}
+                                autoPlay
+                                className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-0 left-0 bg-[#CE4760] text-white text-sm font-semibold px-3 py-1 rounded-bl-lg">
+                                You
+                            </div>
+                        </div>
+                        {peers.length > 0 ? (
+                            peers.map((peer, index) => (
+                                <Audio key={index} peer={peer} />
+                            ))
+                        ) : (
+                            <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg shadow-inner">
+                                <p className="text-gray-500">Waiting for participants...</p>
+                            </div>
+                        )}
                     </div>
-    
-                    {/* Controls */}
-                    <div className="flex flex-wrap gap-6 justify-center mt-8">
-                        <button
-                            onClick={toggleMic}
-                            className="bg-[#CE4760] text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform duration-300">
-                            {isMicOn ? <FaMicrophone className="inline-block mr-2" /> : <FaMicrophoneSlash className="inline-block mr-2" />}
-                            {isMicOn ? "Mute" : "Unmute"}
-                        </button>
-                    </div>
-                </motion.div>
-            
+                </div>
+
+                {/* Controls */}
+                <div className="flex flex-wrap gap-6 justify-center mt-8">
+                    <button
+                        onClick={toggleMic}
+                        className="bg-[#CE4760] text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform duration-300">
+                        {isMicOn ? <FaMicrophone className="inline-block mr-2" /> : <FaMicrophoneSlash className="inline-block mr-2" />}
+                        {isMicOn ? "Mute" : "Unmute"}
+                    </button>
+                </div>
+            </motion.div>
         </div>
-    );    
-};    
+    );
+};
 
 const Audio = ({ peer }) => {
     const ref = useRef();
