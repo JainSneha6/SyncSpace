@@ -11,7 +11,7 @@ const App = () => {
 
   useEffect(() => {
     // Connect to the backend via Socket.IO
-    socketRef.current = io('http://localhost:5000');
+    socketRef.current = io('https://paletteconnect.onrender.com');
 
     // Handle incoming offer, answer, and ICE candidates
     socketRef.current.on('offer', handleOffer);
