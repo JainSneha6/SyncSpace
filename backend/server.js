@@ -212,54 +212,36 @@
 // server.listen(PORT, () => {
 //   console.log(`Server is running on port ${PORT}`);
 // });
-
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const cors = require('cors');  // Importing CORS package
+const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = socketIo(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
+});
 
-// CORS configuration
-app.use(cors({
-  origin: 'http://localhost:3000', // Replace with your frontend's URL
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type'],
-}));
-
-// Serve the frontend React app (optional)
-app.use(express.static('public'));
+app.use(cors());
 
 io.on('connection', (socket) => {
-  console.log('A user connected');
+  console.log('New client connected');
 
-  // Broadcast incoming signaling data to all other clients
-  socket.on('offer', (offer, roomId) => {
-    socket.to(roomId).emit('offer', offer);
-  });
-
-  socket.on('answer', (answer, roomId) => {
-    socket.to(roomId).emit('answer', answer);
-  });
-
-  socket.on('ice-candidate', (candidate, roomId) => {
-    socket.to(roomId).emit('ice-candidate', candidate);
-  });
-
-  socket.on('join', (roomId) => {
-    socket.join(roomId);
-    console.log(`User joined room: ${roomId}`);
+  // Broadcast audio chunks to all other clients
+  socket.on('audio-data', (data) => {
+    socket.broadcast.emit('audio-stream', data);
   });
 
   socket.on('disconnect', () => {
-    console.log('A user disconnected');
+    console.log('Client disconnected');
   });
 });
 
-// Set up the server to listen on a port
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
