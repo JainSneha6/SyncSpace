@@ -1,102 +1,128 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 
-const AudioCall = () => {
-  const [isCalling, setIsCalling] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const localAudioRef = useRef(null);
+const App = () => {
+  const [roomId, setRoomId] = useState('');
+  const [isInRoom, setIsInRoom] = useState(false);
+  const [myStream, setMyStream] = useState(null);
+  const [peerConnection, setPeerConnection] = useState(null);
+  const socketRef = useRef(null);
   const remoteAudioRef = useRef(null);
-  const socket = useRef(null);
-  const peerConnection = useRef(null);
-  const stream = useRef(null);
 
   useEffect(() => {
-    // Connect to the socket.io server
-    socket.current = io();
+    // Connect to the backend via Socket.IO
+    socketRef.current = io('http://localhost:5000');
 
-    socket.current.on('offer', handleOffer);
-    socket.current.on('answer', handleAnswer);
-    socket.current.on('candidate', handleCandidate);
+    // Handle incoming offer, answer, and ICE candidates
+    socketRef.current.on('offer', handleOffer);
+    socketRef.current.on('answer', handleAnswer);
+    socketRef.current.on('ice-candidate', handleNewICECandidate);
 
-    // Clean up when component is unmounted
     return () => {
-      socket.current.disconnect();
+      if (socketRef.current) socketRef.current.disconnect();
     };
   }, []);
 
-  // Start the call
-  const startCall = async () => {
+  const handleJoinRoom = () => {
+    socketRef.current.emit('join', roomId);
+    setIsInRoom(true);
+    setupLocalStream();
+  };
+
+  const setupLocalStream = async () => {
     try {
-      // Get user media (audio)
-      stream.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMyStream(stream);
 
-      // Display local audio
-      localAudioRef.current.srcObject = stream.current;
+      if (peerConnection) {
+        peerConnection.addStream(stream);
+      }
 
-      // Create peer connection
-      peerConnection.current = new RTCPeerConnection();
-
-      // Add tracks to peer connection
-      stream.current.getTracks().forEach((track) => {
-        peerConnection.current.addTrack(track, stream.current);
+      // Set up a new RTCPeerConnection for audio call
+      const newPeerConnection = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' }, // Google's public STUN server
+        ],
       });
 
-      // Create offer and send it to the server
-      const offer = await peerConnection.current.createOffer();
-      await peerConnection.current.setLocalDescription(offer);
-      socket.current.emit('offer', offer);
+      newPeerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          socketRef.current.emit('ice-candidate', event.candidate, roomId);
+        }
+      };
 
-      setIsCalling(true);
+      newPeerConnection.onaddstream = (event) => {
+        remoteAudioRef.current.srcObject = event.stream;
+      };
+
+      newPeerConnection.addStream(stream);
+      setPeerConnection(newPeerConnection);
     } catch (err) {
-      console.error("Error starting the call:", err);
+      console.error('Error accessing media devices.', err);
     }
   };
 
-  // Handle the incoming offer
   const handleOffer = async (offer) => {
-    if (!peerConnection.current) {
-      peerConnection.current = new RTCPeerConnection();
+    if (!peerConnection) return;
+
+    try {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      socketRef.current.emit('answer', answer, roomId);
+    } catch (error) {
+      console.error('Error handling offer:', error);
     }
-
-    // Set remote description from the incoming offer
-    await peerConnection.current.setRemoteDescription(offer);
-
-    // Create answer and send it back to the server
-    const answer = await peerConnection.current.createAnswer();
-    await peerConnection.current.setLocalDescription(answer);
-    socket.current.emit('answer', answer);
   };
 
-  // Handle the incoming answer
   const handleAnswer = (answer) => {
-    peerConnection.current.setRemoteDescription(answer);
-    setIsConnected(true);
+    if (peerConnection) {
+      peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    }
   };
 
-  // Handle ICE candidates (network traversal)
-  const handleCandidate = (candidate) => {
-    peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+  const handleNewICECandidate = (candidate) => {
+    if (peerConnection) {
+      peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    }
   };
 
-  // Handle ICE candidate collection
-  if (peerConnection.current) {
-    peerConnection.current.onicecandidate = ({ candidate }) => {
-      if (candidate) {
-        socket.current.emit('candidate', candidate);
-      }
-    };
-  }
+  const handleCreateOffer = async () => {
+    if (!peerConnection) return;
+
+    try {
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      socketRef.current.emit('offer', offer, roomId);
+    } catch (error) {
+      console.error('Error creating offer:', error);
+    }
+  };
 
   return (
     <div>
-      <h2>Audio Call</h2>
-      <audio ref={localAudioRef} autoPlay muted />
-      <audio ref={remoteAudioRef} autoPlay />
+      {!isInRoom && (
+        <div>
+          <input
+            type="text"
+            value={roomId}
+            onChange={(e) => setRoomId(e.target.value)}
+            placeholder="Room ID"
+          />
+          <button onClick={handleJoinRoom}>Join Room</button>
+        </div>
+      )}
 
-      {isCalling && !isConnected && <p>Connecting...</p>}
-      {!isCalling && <button onClick={startCall}>Start Call</button>}
+      {isInRoom && (
+        <div>
+          <button onClick={handleCreateOffer}>Start Audio Call</button>
+          <audio ref={remoteAudioRef} autoPlay></audio>
+        </div>
+      )}
+
+      {myStream && <audio srcObject={myStream} autoPlay muted />}
     </div>
   );
 };
 
-export default AudioCall;
+export default App;

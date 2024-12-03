@@ -216,45 +216,42 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
-
-// Use CORS middleware
-app.use(cors({
-    origin: 'http://localhost:3000', // Allow only requests from localhost:3000
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-}));
-
 const io = socketIo(server);
 
-// Serve the React app
-app.use(express.static('client/build'));
+// Serve the frontend React app (optional)
+app.use(express.static('public'));
 
 io.on('connection', (socket) => {
-    console.log('New client connected:', socket.id);
+  console.log('A user connected');
 
-    // Listen for the signaling messages (like offer, answer, candidate)
-    socket.on('offer', (offer) => {
-        socket.broadcast.emit('offer', offer);
-    });
+  // Broadcast incoming signaling data to all other clients
+  socket.on('offer', (offer, roomId) => {
+    socket.to(roomId).emit('offer', offer);
+  });
 
-    socket.on('answer', (answer) => {
-        socket.broadcast.emit('answer', answer);
-    });
+  socket.on('answer', (answer, roomId) => {
+    socket.to(roomId).emit('answer', answer);
+  });
 
-    socket.on('candidate', (candidate) => {
-        socket.broadcast.emit('candidate', candidate);
-    });
+  socket.on('ice-candidate', (candidate, roomId) => {
+    socket.to(roomId).emit('ice-candidate', candidate);
+  });
 
-    socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
-    });
+  socket.on('join', (roomId) => {
+    socket.join(roomId);
+    console.log(`User joined room: ${roomId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('A user disconnected');
+  });
 });
 
+// Set up the server to listen on a port
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
