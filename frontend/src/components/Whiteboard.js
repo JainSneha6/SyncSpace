@@ -26,7 +26,7 @@ const Canvas = () => {
 
   useEffect(() => {
 
-    socketRef.current = io("https://paletteconnect.onrender.com");   
+    socketRef.current = io("https://paletteconnect.onrender.com");
     if (roomId) {
       socketRef.current.emit("joinRoom", roomId);
 
@@ -158,7 +158,7 @@ const Canvas = () => {
         const fillColor = hexToRGBA(drawing.color);
         floodFill(ctx, drawing.x, drawing.y, Array.from(targetColor), fillColor);
         break;
-        
+
 
       default:
         console.error("Unknown tool:", drawing.tool);
@@ -241,18 +241,18 @@ const Canvas = () => {
     const rect = canvas.getBoundingClientRect();
     const x = Math.floor(e.clientX - rect.left);
     const y = Math.floor(e.clientY - rect.top);
-  
+
     if (tool === "fill") {
       const ctx = canvas.getContext("2d");
       const targetColor = ctx.getImageData(x, y, 1, 1).data;
       const fillColor = hexToRGBA(color);
-  
+
       floodFill(ctx, x, y, Array.from(targetColor), fillColor);
-  
+
       if (roomId) {
         socketRef.current.emit("drawing", { roomId, tool: "fill", x, y, color });
       }
-    } 
+    }
     else if (tool === "stickyNote") {
       createStickyNote(x, y); // Create sticky note at clicked position
     }
@@ -267,7 +267,7 @@ const Canvas = () => {
       }
     }
   };
-  
+
 
   const handleMouseMove = (e) => {
     if (!isDrawing) return;
@@ -409,9 +409,9 @@ const Canvas = () => {
         const targetColor = ctx.getImageData(x, y, 1, 1).data; // Use x and y from mouse event
         const fillColor = hexToRGBA(drawingData.color); // Use color from drawingData
         floodFill(ctx, x, y, Array.from(targetColor), fillColor); // Perform fill operation
-        drawingData = { ...drawingData, type: "fill", targetColor: Array.from(targetColor), fillColor, x, y};
+        drawingData = { ...drawingData, type: "fill", targetColor: Array.from(targetColor), fillColor, x, y };
         break;
-  
+
       default:
         break;
     }
@@ -482,12 +482,12 @@ const Canvas = () => {
     const canvas = canvasRef.current;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const { data, width, height } = imageData;
-  
+
     const getColorAt = (x, y) => {
       const index = (y * width + x) * 4;
       return data.slice(index, index + 4); // RGBA array
     };
-  
+
     const setColorAt = (x, y, color) => {
       const index = (y * width + x) * 4;
       data[index] = color[0]; // R
@@ -495,24 +495,24 @@ const Canvas = () => {
       data[index + 2] = color[2]; // B
       data[index + 3] = color[3]; // A
     };
-  
+
     const colorMatch = (c1, c2) => c1.every((v, i) => v === c2[i]);
-  
+
     const fillStack = [[startX, startY]];
     while (fillStack.length) {
       const [x, y] = fillStack.pop();
       const currentColor = getColorAt(x, y);
-  
+
       if (!colorMatch(currentColor, targetColor) || colorMatch(currentColor, fillColor)) continue;
-  
+
       setColorAt(x, y, fillColor);
-  
+
       if (x > 0) fillStack.push([x - 1, y]);
       if (x < width - 1) fillStack.push([x + 1, y]);
       if (y > 0) fillStack.push([x, y - 1]);
       if (y < height - 1) fillStack.push([x, y + 1]);
     }
-  
+
     ctx.putImageData(imageData, 0, 0);
   };
 
@@ -524,120 +524,119 @@ const Canvas = () => {
   const goToPptViewer = () => {
     navigate(`/ppt/${roomId}`);
   };
-  
+
   return (
-    <div className="min-h-screen bg-[#2F4550] flex flex-col lg:flex-row">
-  {/* Toolbar Section */}
-  <div className="bg-[#2F4550] shadow-xl lg:rounded-r-lg p-4 flex flex-col gap-4 w-full lg:w-auto lg:min-w-[120px]">
-    {/* PPT Viewer Button */}
-    <button
-      onClick={goToPptViewer}
-      className="bg-[#CE4760] text-white py-2 px-4 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-    >
-      <FaFilePowerpoint className="inline-block mr-2" />
-      PPT
-    </button>
-
-    {/* Audio Room */}
-    <AudioRoom roomId={roomId} />
-
-    {/* Tool Buttons */}
-    <div className="grid grid-cols-3 lg:grid-cols-2 gap-4">
-      {[
-        { tool: "brush", icon: <RiBrushFill className="text-xl" /> },
-        { tool: "eraser", icon: <RiEraserFill className="text-xl" /> },
-        { tool: "circle", icon: <RiCircleLine className="text-xl" /> },
-        { tool: "rectangle", icon: <RiRectangleLine className="text-xl" /> },
-        { tool: "triangle", icon: <RiTriangleLine className="text-xl" /> },
-        { tool: "line", icon: <FaGripLines className="text-xl" /> },
-        { tool: "ellipse", icon: <TbOvalVertical className="text-xl" /> },
-        { tool: "polygon", icon: <BiPolygon className="text-xl" /> },
-        { tool: "star", icon: <BiStar className="text-xl" /> },
-        { tool: "arrow", icon: <FaArrowsAltH className="text-xl" /> },
-        { tool: "fill", icon: <RiPaintFill className="text-xl" /> },
-        { tool: "stickyNote", icon: <RiStickyNoteFill className="text-xl" /> },
-      ].map(({ tool, icon }) => (
+    <div className="min-h-screen bg-[#2F4550] flex flex-col lg:flex-row overflow-hidden">
+      {/* Toolbar Section */}
+      <div className="bg-[#2F4550] shadow-xl lg:rounded-r-lg p-4 flex flex-col gap-4 w-full lg:w-auto lg:min-w-[120px]">
+        {/* PPT Viewer Button */}
         <button
-          key={tool}
-          onClick={() => setTool(tool)}
-          className={`p-3 rounded-full shadow-md transition-all ${
-            tool === tool
-              ? "bg-[#CE4760] text-white"
-              : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"
-          }`}
+          onClick={goToPptViewer}
+          className="bg-[#CE4760] text-white py-2 px-4 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
         >
-          {icon}
+          <FaFilePowerpoint className="inline-block mr-2" />
+          PPT
         </button>
-      ))}
+
+        {/* Audio Room */}
+        <AudioRoom roomId={roomId} />
+
+        {/* Tool Buttons */}
+        <div className="grid grid-cols-3 lg:grid-cols-2 gap-4">
+          {[
+            { tool: "brush", icon: <RiBrushFill className="text-xl" /> },
+            { tool: "eraser", icon: <RiEraserFill className="text-xl" /> },
+            { tool: "circle", icon: <RiCircleLine className="text-xl" /> },
+            { tool: "rectangle", icon: <RiRectangleLine className="text-xl" /> },
+            { tool: "triangle", icon: <RiTriangleLine className="text-xl" /> },
+            { tool: "line", icon: <FaGripLines className="text-xl" /> },
+            { tool: "ellipse", icon: <TbOvalVertical className="text-xl" /> },
+            { tool: "polygon", icon: <BiPolygon className="text-xl" /> },
+            { tool: "star", icon: <BiStar className="text-xl" /> },
+            { tool: "arrow", icon: <FaArrowsAltH className="text-xl" /> },
+            { tool: "fill", icon: <RiPaintFill className="text-xl" /> },
+            { tool: "stickyNote", icon: <RiStickyNoteFill className="text-xl" /> },
+          ].map(({ tool, icon }) => (
+            <button
+              key={tool}
+              onClick={() => setTool(tool)}
+              className={`p-3 rounded-full shadow-md transition-all ${tool === tool
+                  ? "bg-[#CE4760] text-white"
+                  : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"
+                }`}
+            >
+              {icon}
+            </button>
+          ))}
+        </div>
+
+        {/* Additional Options */}
+        <div className="flex flex-wrap gap-4 mt-4 justify-center">
+          {/* Color Picker */}
+          <button
+            onClick={handleColorClick}
+            className="p-2 rounded-full bg-[#CE4760] text-white hover:bg-pink-700"
+          >
+            <RiPaletteFill className="text-xl" />
+          </button>
+          <input
+            type="color"
+            ref={colorInputRef}
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="hidden"
+          />
+
+          {/* Brush Width */}
+          <input
+            type="range"
+            min="1"
+            max="50"
+            value={brushWidth}
+            onChange={(e) => setBrushWidth(Number(e.target.value))}
+            className="w-full accent-[#CE4760]"
+          />
+
+          {/* Clear Button */}
+          <button
+            onClick={clearCanvas}
+            className="p-3 rounded-full bg-white text-[#CE4760] shadow-md transition-all hover:bg-[#CE4760] hover:text-white"
+          >
+            <RiDeleteBinLine className="text-xl" />
+          </button>
+        </div>
+      </div>
+
+      {/* Canvas Section */}
+      <div className="flex-grow bg-white shadow-xl rounded-lg m-4 relative flex justify-center items-center">
+        <canvas
+          ref={canvasRef}
+          width={900}
+          height={662}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+        />
+
+        {/* Sticky Notes */}
+        {stickyNotes.map((note) => (
+          <StickyNote
+            key={note.id}
+            noteData={note}
+            onUpdateNote={updateStickyNote}
+            onDeleteNote={deleteStickyNote}
+            onCreateNewNote={handleCreateNewNote}
+          />
+        ))}
+      </div>
+
+      {/* Chat Section */}
+      <div className="w-full lg:w-1/3 bg-[#2F4550] shadow-xl lg:rounded-l-lg p-4">
+        <Chat socketRef={socketRef} roomId={roomId} height={"400px"} />
+      </div>
     </div>
-
-    {/* Additional Options */}
-    <div className="flex flex-wrap gap-4 mt-4 justify-center">
-      {/* Color Picker */}
-      <button
-        onClick={handleColorClick}
-        className="p-2 rounded-full bg-[#CE4760] text-white hover:bg-pink-700"
-      >
-        <RiPaletteFill className="text-xl" />
-      </button>
-      <input
-        type="color"
-        ref={colorInputRef}
-        value={color}
-        onChange={(e) => setColor(e.target.value)}
-        className="hidden"
-      />
-
-      {/* Brush Width */}
-      <input
-        type="range"
-        min="1"
-        max="50"
-        value={brushWidth}
-        onChange={(e) => setBrushWidth(Number(e.target.value))}
-        className="w-full accent-[#CE4760]"
-      />
-
-      {/* Clear Button */}
-      <button
-        onClick={clearCanvas}
-        className="p-3 rounded-full bg-white text-[#CE4760] shadow-md transition-all hover:bg-[#CE4760] hover:text-white"
-      >
-        <RiDeleteBinLine className="text-xl" />
-      </button>
-    </div>
-  </div>
-
-  {/* Canvas Section */}
-  <div className="flex-grow bg-white shadow-xl rounded-lg m-4 relative flex justify-center items-center">
-    <canvas
-      ref={canvasRef}
-      width={900}
-      height={662}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-    />
-
-    {/* Sticky Notes */}
-    {stickyNotes.map((note) => (
-      <StickyNote
-        key={note.id}
-        noteData={note}
-        onUpdateNote={updateStickyNote}
-        onDeleteNote={deleteStickyNote}
-        onCreateNewNote={handleCreateNewNote}
-      />
-    ))}
-  </div>
-
-  {/* Chat Section */}
-  <div className="w-full lg:w-1/3 bg-[#2F4550] shadow-xl lg:rounded-l-lg p-4">
-    <Chat socketRef={socketRef} roomId={roomId} height={"400px"} />
-  </div>
-</div>
 
   );
-};  
+};
 
 export default Canvas;
