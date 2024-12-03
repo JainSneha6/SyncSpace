@@ -220,49 +220,34 @@ const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
-  cors: { origin: "*" }
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
 });
 
-const users = {};
-
 io.on('connection', (socket) => {
-  socket.on('join-room', (roomId, userId) => {
-    // Add user to room
-    if (!users[roomId]) {
-      users[roomId] = [];
-    }
-    users[roomId].push({ id: userId, socketId: socket.id });
+  console.log('Client connected');
 
-    // Broadcast to other users in room
-    socket.join(roomId);
-    socket.to(roomId).emit('user-connected', userId);
-
-    // Send existing users to new user
-    socket.emit('existing-users', users[roomId].map(user => user.id));
+  // Signaling for WebRTC
+  socket.on('offer', (offer) => {
+    socket.broadcast.emit('offer', offer);
   });
 
-  socket.on('offer', (roomId, offer, targetUserId) => {
-    socket.to(roomId).emit('offer', offer, socket.id);
+  socket.on('answer', (answer) => {
+    socket.broadcast.emit('answer', answer);
   });
 
-  socket.on('answer', (roomId, answer, targetUserId) => {
-    socket.to(roomId).emit('answer', answer, socket.id);
-  });
-
-  socket.on('ice-candidate', (roomId, candidate) => {
-    socket.to(roomId).emit('ice-candidate', candidate, socket.id);
+  socket.on('ice-candidate', (candidate) => {
+    socket.broadcast.emit('ice-candidate', candidate);
   });
 
   socket.on('disconnect', () => {
-    // Remove user from rooms
-    for (const roomId in users) {
-      users[roomId] = users[roomId].filter(user => user.socketId !== socket.id);
-      socket.to(roomId).emit('user-disconnected', socket.id);
-    }
+    console.log('Client disconnected');
   });
 });
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`Signaling server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
