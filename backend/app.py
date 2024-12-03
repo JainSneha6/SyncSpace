@@ -75,11 +75,14 @@ def upload_ppt():
 
         slide_filenames = [os.path.basename(slide) for slide in slides]
         print(f"Slides converted to images: {slide_filenames}")
+        base_url = request.host_url.rstrip('/')
+        slide_urls = [f"{base_url}/slides/{unique_id}/{os.path.basename(slide)}" for slide in slides]
+        pdf_url = f"{base_url}/pdf/{unique_id}.pdf"
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-    return jsonify({"slides": slide_filenames, "folder": unique_id, "pdf": f"/pdf/{unique_id}.pdf"}), 200
+    return jsonify({"slides": slide_urls, "folder": unique_id, "pdf": pdf_url}), 200
 
 @app.route('/slides/<folder>/<filename>', methods=['GET'])
 def serve_slide(folder, filename):

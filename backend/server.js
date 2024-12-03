@@ -3,6 +3,8 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const multer = require('multer');
+const FormData = require('form-data'); // Ensure FormData is imported
+const axios = require('axios')
 
 const app = express();
 app.use(cors());
@@ -27,10 +29,11 @@ const stickyNotesPerRoom = {};
 let stickyNotes = [];
 let pptData = {};
 
+// Route to handle PPT uploads
 app.post('/uploadPpt', upload.single('file'), async (req, res) => {
-  const { roomId } = req.body;  // Extract roomId from request body
-  const pptFile = req.file;     // Access the uploaded file via req.file
-  
+  const { roomId } = req.body; // Extract roomId from the request body
+  const pptFile = req.file; // Access the uploaded file
+  console.log('Hello')
   if (!pptFile) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -40,27 +43,26 @@ app.post('/uploadPpt', upload.single('file'), async (req, res) => {
   }
 
   try {
-    // Sending pptFile to Flask backend for processing (as before)
+    // Prepare FormData to send to Flask backend
     const formData = new FormData();
-    formData.append('file', pptFile.buffer, pptFile.originalname);
-    
+    formData.append('file', pptFile.buffer, pptFile.originalname); // Attach file buffer with original name
+
+    // Send the file to Flask backend for processing
     const response = await axios.post('http://localhost:5000/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: formData.getHeaders(),
     });
 
     const { slides, folder, pdf } = response.data;
 
-    // Save the slides info in memory
+    // Store the slides data for the room
     pptData[roomId] = { slides, folder, pdf };
 
-    // Broadcast the slides to all users in the room
+    // Notify all users in the room about the new slides
     io.to(roomId).emit('pptUploaded', pptData[roomId]);
 
     res.status(200).json({ slides, folder, pdf });
   } catch (error) {
-    console.error('Error uploading PPT:', error);
+    console.error('Error uploading PPT:', error.message);
     res.status(500).json({ error: 'Failed to upload PPT' });
   }
 });
@@ -109,7 +111,7 @@ io.on('connection', (socket) => {
     if (drawingrooms[roomId]) {
       socket.emit("loadDrawing", drawingrooms[roomId]);
     } else {
-      drawingrooms[roomId] = []; 
+      drawingrooms[roomId] = [];
     }
 
     if (stickyNotesPerRoom[roomId]) {
@@ -123,10 +125,16 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('slideChange', (newIndex) => {
-    const roomId = socket.id; // Can use roomId for better scalability if needed
-    console.log(`Slide changed to index ${newIndex}`);
-    socket.to(roomId).emit('slideChange', newIndex); // Emit to others in the same room
+  socket.on('uploadPpt', (pptData) => {
+    const { roomId, pptFileData } = pptData;
+
+    // Broadcast the ppt data to all clients in the room
+    io.to(roomId).emit('pptUploaded', pptFileData);
+  });
+
+  socket.on('slideChanged', ({ roomId, currentIndex }) => {
+    // Broadcast to other clients in the same room
+    socket.to(roomId).emit('slideUpdated', currentIndex);
   });
 
   socket.on('drawing', (data) => {
