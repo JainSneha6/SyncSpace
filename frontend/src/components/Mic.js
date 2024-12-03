@@ -41,7 +41,9 @@ const AudioRoom = ({ roomId }) => {
                 // Handle receiving returned signal
                 socketRef.current.on('receiving returned signal', payload => {
                     const peer = peers.find(p => p.peerID === payload.id);
-                    peer.peer.signal(payload.signal);
+                    if (peer) {
+                        peer.peer.signal(payload.signal);
+                    }
                 });
             })
             .catch(err => {
@@ -73,11 +75,12 @@ const AudioRoom = ({ roomId }) => {
             stream,
         });
 
+        peer.peerID = userToSignal;  // Ensure peerID is set
+
         peer.on('signal', signal => {
             socketRef.current.emit('sending signal', { userToSignal, callerID, signal });
         });
 
-        peer.peerID = userToSignal;
         return peer;
     };
 
@@ -88,13 +91,14 @@ const AudioRoom = ({ roomId }) => {
             stream,
         });
 
+        peer.peerID = callerID;  // Ensure peerID is set
+
         peer.on('signal', signal => {
             socketRef.current.emit('returning signal', { signal, callerID });
         });
 
         peer.signal(incomingSignal);
 
-        peer.peerID = callerID;
         return peer;
     };
 
