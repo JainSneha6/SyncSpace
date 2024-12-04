@@ -1,19 +1,26 @@
 import os
 import uuid
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-import fitz  
+import fitz  # PyMuPDF
 from spire.presentation import *
 from spire.presentation.common import *
+import boto3
+from dotenv import load_dotenv
+import os
+from botocore.exceptions import NoCredentialsError
 
 app = Flask(__name__)
 CORS(app)
 
-UPLOAD_FOLDER = 'uploads'
-OUTPUT_FOLDER = 'slides'
+load_dotenv()
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY')
+AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
+AWS_REGION = os.getenv('AWS_REGION')
+BUCKET_NAME = os.getenv('BUCKET_NAME')
+
+s3_client = boto3.client('s3', region_name=AWS_REGION, aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
 
 @app.route('/upload', methods=['POST'])
 def upload_ppt():
@@ -29,22 +36,24 @@ def upload_ppt():
 
     # Generate a unique ID for this upload
     unique_id = str(uuid.uuid4())
-    filepath = os.path.join(UPLOAD_FOLDER, f"{unique_id}_{file.filename}")
-    file.save(filepath)
-
-    # Create an output directory for this particular PPTX conversion
-    output_dir = os.path.join(OUTPUT_FOLDER, unique_id)
-    os.makedirs(output_dir, exist_ok=True)
+    filename = f"{unique_id}_{file.filename}"
+    file_path = f"/tmp/{filename}"
+    file.save(file_path)
 
     # Convert PPTX to PDF using Spire.Presentation
-    pdf_filepath = os.path.join(output_dir, f"{unique_id}.pdf")
+    pdf_filename = f"{unique_id}.pdf"
+    pdf_filepath = f"/tmp/{pdf_filename}"
     try:
-        print(f"Converting {filepath} to PDF...")
+        print(f"Converting {file_path} to PDF...")
         presentation = Presentation()
-        presentation.LoadFromFile(filepath)
+        presentation.LoadFromFile(file_path)
         presentation.SaveToFile(pdf_filepath, FileFormat.PDF)
         presentation.Dispose()
         print(f"Conversion to PDF successful. PDF saved at {pdf_filepath}.")
+
+        # Upload PDF to S3
+        s3_client.upload_file(pdf_filepath, BUCKET_NAME, pdf_filename)
+        pdf_url = f"https://{BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{pdf_filename}"
 
         # Convert PDF to images using PyMuPDF (fitz)
         print("Converting PDF to images...")
@@ -55,15 +64,14 @@ def upload_ppt():
             try:
                 page = pdf_document.load_page(page_number)
                 pix = page.get_pixmap(dpi=300)  # Use 300 DPI for better quality
-                output_image_path = os.path.join(output_dir, f"slide_{page_number + 1}.jpg")
-                pix.save(output_image_path)
-                slides.append(output_image_path)
+                image_filename = f"slide_{unique_id}_{page_number + 1}.jpg"
+                image_filepath = f"/tmp/{image_filename}"
+                pix.save(image_filepath)
+                slides.append(image_filename)
 
-                # Debug: Check if the image is saved
-                if os.path.exists(output_image_path):
-                    print(f"Image for slide {page_number + 1} saved at {output_image_path}")
-                else:
-                    print(f"Failed to save image for slide {page_number + 1}")
+                # Upload image to S3
+                s3_client.upload_file(image_filepath, BUCKET_NAME, image_filename)
+                print(f"Image for slide {page_number + 1} saved at {image_filepath}")
 
             except Exception as e:
                 print(f"Error during image generation for page {page_number + 1}: {e}")
@@ -73,11 +81,8 @@ def upload_ppt():
         if not slides:
             raise Exception("No images were generated from the PDF.")
 
-        slide_filenames = [os.path.basename(slide) for slide in slides]
-        print(f"Slides converted to images: {slide_filenames}")
-        base_url = request.host_url.rstrip('/')
-        slide_urls = [f"{base_url}/slides/{unique_id}/{os.path.basename(slide)}" for slide in slides]
-        pdf_url = f"{base_url}/pdf/{unique_id}.pdf"
+        slide_urls = [f"https://{BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{slide}" for slide in slides]
+        print(f"Slides converted to images: {slide_urls}")
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
@@ -86,24 +91,27 @@ def upload_ppt():
 
 @app.route('/slides/<folder>/<filename>', methods=['GET'])
 def serve_slide(folder, filename):
-    folder_path = os.path.join(OUTPUT_FOLDER, folder)
-    file_path = os.path.join(folder_path, filename)
-
-    if not os.path.exists(file_path):
-        return jsonify({"error": "File not found"}), 404
-
-    return send_file(file_path, mimetype='image/jpeg')
+    file_key = f"{folder}/{filename}"
+    try:
+        s3_client.head_object(Bucket=BUCKET_NAME, Key=file_key)
+        slide_url = f"https://{BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{file_key}"
+        return jsonify({"url": slide_url}), 200
+    except NoCredentialsError:
+        return jsonify({"error": "Credentials not available"}), 403
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404
 
 @app.route('/pdf/<filename>', methods=['GET'])
 def serve_pdf(filename):
-    # Serve the PDF file to the frontend
-    file_path = os.path.join(OUTPUT_FOLDER, filename)
-
-    if not os.path.exists(file_path):
-        return jsonify({"error": "File not found"}), 404
-
-    return send_file(file_path, mimetype='application/pdf')
-
+    file_key = filename
+    try:
+        s3_client.head_object(Bucket=BUCKET_NAME, Key=file_key)
+        pdf_url = f"https://{BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{file_key}"
+        return jsonify({"url": pdf_url}), 200
+    except NoCredentialsError:
+        return jsonify({"error": "Credentials not available"}), 403
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)
