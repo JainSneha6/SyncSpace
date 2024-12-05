@@ -12,7 +12,7 @@ app.use(cors());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'https://sync-space-nine.vercel.app/', // Adjust as needed for your frontend
+    origin: '*', // Adjust as needed for your frontend
     methods: ['GET', 'POST'],
   },
 });
