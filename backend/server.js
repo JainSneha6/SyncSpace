@@ -41,17 +41,17 @@ app.post('/uploadPpt', upload.single('file'), async (req, res) => {
   if (!roomId) {
     return res.status(400).json({ error: 'Room ID is required' });
   }
-
+  console.log('2')
   try {
     // Prepare FormData to send to Flask backend
     const formData = new FormData();
     formData.append('file', pptFile.buffer, pptFile.originalname); // Attach file buffer with original name
-
+    console.log('Bef 3')
     // Send the file to Flask backend for processing
     const response = await axios.post('https://syncspace-pkal.onrender.com/upload', formData, {
       headers: formData.getHeaders(),
     });
-
+    console.log('3')
     const { slides, folder, pdf } = response.data;
 
     // Store the slides data for the room
