@@ -16,7 +16,7 @@ function PresentationViewer() {
 
   useEffect(() => {
     // Initialize Socket.IO connection
-    socketRef.current = io('https://paletteconnect.onrender.com');
+    socketRef.current = io('http://localhost:5001');
 
     socketRef.current.emit('joinRoom', roomId);
 
@@ -57,7 +57,7 @@ function PresentationViewer() {
     formData.append('roomId', roomId);
 
     try {
-      const response = await axios.post('https://paletteconnect.onrender.com/uploadPpt', formData, {
+      const response = await axios.post('http://localhost:5001/uploadPpt', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
@@ -106,7 +106,7 @@ function PresentationViewer() {
             <input
               type="file"
               onChange={handleFileChange}
-              accept=".ppt,.pptx"
+              accept=".pdf"
               className="w-full p-4 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#CE4760] text-lg"
             />
             <button

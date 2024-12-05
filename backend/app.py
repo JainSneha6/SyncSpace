@@ -1,26 +1,49 @@
-import os
 import uuid
+import requests  # pip install requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import fitz  # PyMuPDF
-from spire.presentation import *
-from spire.presentation.common import *
-import boto3
-from dotenv import load_dotenv
-import os
-from botocore.exceptions import NoCredentialsError
+import io
 
 app = Flask(__name__)
 CORS(app)
 
-load_dotenv()
+# PDF.co API credentials
+API_KEY = "anujtadkase2@gmail.com_jNW4ZtncoPAdA74PoEDsyEtNPGNTC4k7FYPBcWHZFaSDhKd8bmJMCWwsaCjtSWXc"
+BASE_URL = "https://api.pdf.co/v1"
+Password = ""
+Pages = ""
 
-AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY')
-AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
-AWS_REGION = os.getenv('AWS_REGION')
-BUCKET_NAME = os.getenv('BUCKET_NAME')
 
-s3_client = boto3.client('s3', region_name=AWS_REGION, aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
+def upload_file_to_pdf_co(file_stream, file_name):
+    """Uploads file to PDF.co directly from memory and returns the uploaded file URL."""
+    url = f"{BASE_URL}/file/upload/get-presigned-url?contenttype=application/octet-stream&name={file_name}"
+    response = requests.get(url, headers={"x-api-key": API_KEY})
+    if response.status_code == 200:
+        json_response = response.json()
+        if not json_response["error"]:
+            upload_url = json_response["presignedUrl"]
+            uploaded_file_url = json_response["url"]
+            upload_response = requests.put(upload_url, data=file_stream, headers={"content-type": "application/octet-stream"})
+            if upload_response.status_code == 200:
+                return uploaded_file_url
+    return None
+
+
+def convert_pdf_to_images(uploaded_file_url, image_type="jpg"):
+    """Converts PDF to images using PDF.co Web API and returns image URLs."""
+    url = f"{BASE_URL}/pdf/convert/to/{image_type}"
+    params = {
+        "password": Password,
+        "pages": Pages,
+        "url": uploaded_file_url
+    }
+    response = requests.post(url, data=params, headers={"x-api-key": API_KEY})
+    if response.status_code == 200:
+        json_response = response.json()
+        if not json_response["error"]:
+            return json_response["urls"]
+    return None
+
 
 @app.route('/upload', methods=['POST'])
 def upload_ppt():
@@ -31,87 +54,36 @@ def upload_ppt():
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
 
-    if not file.filename.endswith('.pptx'):
-        return jsonify({"error": "Invalid file type. Only .pptx allowed"}), 400
-
-    # Generate a unique ID for this upload
+    # Create a unique name for the uploaded file
     unique_id = str(uuid.uuid4())
-    filename = f"{unique_id}_{file.filename}"
-    file_path = f"/tmp/{filename}"
-    file.save(file_path)
+    file_name = f"{unique_id}_{file.filename}"
 
-    # Convert PPTX to PDF using Spire.Presentation
-    pdf_filename = f"{unique_id}.pdf"
-    pdf_filepath = f"/tmp/{pdf_filename}"
     try:
-        print(f"Converting {file_path} to PDF...")
-        presentation = Presentation()
-        presentation.LoadFromFile(file_path)
-        presentation.SaveToFile(pdf_filepath, FileFormat.PDF)
-        presentation.Dispose()
-        print(f"Conversion to PDF successful. PDF saved at {pdf_filepath}.")
+        # Read file content into memory
+        file_stream = io.BytesIO(file.read())
 
-        # Upload PDF to S3
-        s3_client.upload_file(pdf_filepath, BUCKET_NAME, pdf_filename)
-        pdf_url = f"https://{BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{pdf_filename}"
+        # Upload file to PDF.co
+        uploaded_file_url = upload_file_to_pdf_co(file_stream, file_name)
+        if not uploaded_file_url:
+            return jsonify({"error": "Failed to upload file to PDF.co"}), 500
 
-        # Convert PDF to images using PyMuPDF (fitz)
-        print("Converting PDF to images...")
-        pdf_document = fitz.open(pdf_filepath)
-        slides = []
+        # Convert PDF to images
+        image_urls = convert_pdf_to_images(uploaded_file_url)
+        if not image_urls:
+            return jsonify({"error": "Failed to convert PDF to images"}), 500
 
-        for page_number in range(pdf_document.page_count):
-            try:
-                page = pdf_document.load_page(page_number)
-                pix = page.get_pixmap(dpi=300)  # Use 300 DPI for better quality
-                image_filename = f"slide_{unique_id}_{page_number + 1}.jpg"
-                image_filepath = f"/tmp/{image_filename}"
-                pix.save(image_filepath)
-                slides.append(image_filename)
+        # Prepare the folder and PDF URL for response
+        folder_url = uploaded_file_url.rsplit('/', 1)[0]  # Extract the folder URL from the uploaded file URL
+        pdf_url = uploaded_file_url  # Use the uploaded file URL as the PDF URL
 
-                # Upload image to S3
-                s3_client.upload_file(image_filepath, BUCKET_NAME, image_filename)
-                print(f"Image for slide {page_number + 1} saved at {image_filepath}")
-
-            except Exception as e:
-                print(f"Error during image generation for page {page_number + 1}: {e}")
-                continue
-
-        # Check if images were created
-        if not slides:
-            raise Exception("No images were generated from the PDF.")
-
-        slide_urls = [f"https://{BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{slide}" for slide in slides]
-        print(f"Slides converted to images: {slide_urls}")
-
+        return jsonify({
+            "slides": image_urls,
+            "folder": folder_url,
+            "pdf": pdf_url
+        }), 200
     except Exception as e:
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-    return jsonify({"slides": slide_urls, "folder": unique_id, "pdf": pdf_url}), 200
-
-@app.route('/slides/<folder>/<filename>', methods=['GET'])
-def serve_slide(folder, filename):
-    file_key = f"{folder}/{filename}"
-    try:
-        s3_client.head_object(Bucket=BUCKET_NAME, Key=file_key)
-        slide_url = f"https://{BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{file_key}"
-        return jsonify({"url": slide_url}), 200
-    except NoCredentialsError:
-        return jsonify({"error": "Credentials not available"}), 403
-    except Exception as e:
-        return jsonify({"error": str(e)}), 404
-
-@app.route('/pdf/<filename>', methods=['GET'])
-def serve_pdf(filename):
-    file_key = filename
-    try:
-        s3_client.head_object(Bucket=BUCKET_NAME, Key=file_key)
-        pdf_url = f"https://{BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{file_key}"
-        return jsonify({"url": pdf_url}), 200
-    except NoCredentialsError:
-        return jsonify({"error": "Credentials not available"}), 403
-    except Exception as e:
-        return jsonify({"error": str(e)}), 404
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True, port=5000)

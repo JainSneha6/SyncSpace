@@ -48,7 +48,7 @@ app.post('/uploadPpt', upload.single('file'), async (req, res) => {
     formData.append('file', pptFile.buffer, pptFile.originalname); // Attach file buffer with original name
 
     // Send the file to Flask backend for processing
-    const response = await axios.post('https://syncspace-pkal.onrender.com/upload', formData, {
+    const response = await axios.post('http://localhost:5000/upload', formData, {
       headers: formData.getHeaders(),
     });
 
