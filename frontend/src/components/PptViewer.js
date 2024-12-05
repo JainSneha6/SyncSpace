@@ -16,7 +16,7 @@ function PresentationViewer() {
 
   useEffect(() => {
     // Initialize Socket.IO connection
-    socketRef.current = io('http://localhost:5001');
+    socketRef.current = io('https://paletteconnect.onrender.com');
 
     socketRef.current.emit('joinRoom', roomId);
 
@@ -57,7 +57,7 @@ function PresentationViewer() {
     formData.append('roomId', roomId);
 
     try {
-      const response = await axios.post('http://localhost:5001/uploadPpt', formData, {
+      const response = await axios.post('https://paletteconnect.onrender.com/uploadPpt', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
