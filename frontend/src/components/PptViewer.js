@@ -80,9 +80,16 @@ function PresentationViewer() {
     const extractedText = await extractTextFromPDF(selectedFile);
     console.log('Extracted text:', extractedText);
 
-    const dataToSend = {
-        content: extractedText,
+    console.log(extractedText)
+
+    const transcriptData = {
+      transcript: extractedText, // Use the extracted text here
     };
+
+    // Send the extracted text to the backend in the required format
+    const response = await axios.post('https://backendfianlsih.azurewebsites.net/trans_quiz/get_questions', transcriptData);
+
+    console.log('Backend response:', response.data);
 
     const formData = new FormData();
     formData.append('file', selectedFile);
