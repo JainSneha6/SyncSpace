@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useParams } from 'react-router-dom';
-import Chat from './Chat';
-import AudioRoom from "./Mic";
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 
 // Set the worker source
@@ -19,7 +17,9 @@ const extractTextFromPDF = async (file) => {
       const page = await pdfDoc.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map((item) => item.str).join(' ');
-      text += `Page ${i}:\n${pageText}\n\n`;
+      text += `Page ${i}:
+      ${pageText}
+      \n`;
     }
 
     return text.trim();
@@ -37,6 +37,7 @@ function PresentationViewer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const socketRef = useRef(null);
   const { roomId } = useParams();
+  const [quiz, setQuiz] = useState([]);
 
   useEffect(() => {
     // Initialize Socket.IO connection
@@ -80,27 +81,26 @@ function PresentationViewer() {
     const extractedText = await extractTextFromPDF(selectedFile);
     console.log('Extracted text:', extractedText);
 
-    console.log(extractedText)
-
     const transcriptData = {
       transcript: extractedText, // Use the extracted text here
     };
 
-    // Send the extracted text to the backend in the required format
-    const response = await axios.post('https://backendfianlsih.azurewebsites.net/trans_quiz/get_questions', transcriptData);
-
-    console.log('Backend response:', response.data);
-
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('roomId', roomId);
-
     try {
-      const response = await axios.post('https://paletteconnect.onrender.com/uploadPpt', formData, {
+      // Send the extracted text to the backend in the required format
+      const response = await axios.post('https://backendfianlsih.azurewebsites.net/trans_quiz/get_questions', transcriptData);
+
+      console.log('Backend response:', response.data);
+      setQuiz(response.data);
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('roomId', roomId);
+
+      const pptResponse = await axios.post('https://paletteconnect.onrender.com/uploadPpt', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      const pptData = response.data;
+      const pptData = pptResponse.data;
       setImageUrls(pptData.slides || []);
       setPdfUrl(pptData.pdf || '');
       setCurrentIndex(0); // Reset to the first slide
@@ -108,8 +108,8 @@ function PresentationViewer() {
       // Emit the ppt data to all users in the room
       socketRef.current.emit('uploadPpt', { roomId, pptFileData: pptData });
     } catch (error) {
-      console.error('Error uploading PPT:', error.response || error.message);
-      alert('Failed to upload presentation. Please try again.');
+      console.error('Error uploading PPT or fetching quiz:', error.response || error.message);
+      alert('Failed to upload presentation or fetch quiz. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -130,7 +130,6 @@ function PresentationViewer() {
       socketRef.current.emit('slideChanged', { roomId, currentIndex: newIndex });
     }
   };
-
 
   return (
     <div className="min-h-screen bg-white text-white flex flex-col items-center justify-center p-6 relative">
@@ -163,7 +162,6 @@ function PresentationViewer() {
       {imageUrls.length > 0 && (
         <div className="w-full max-w-5xl bg-[#2F4550] rounded-lg shadow-2xl p-10 flex flex-col lg:flex-row gap-8">
           <div className="flex-1">
-            <AudioRoom roomId={roomId} />
             <div className="relative flex flex-col items-center justify-center gap-4">
               <h2 className="text-xl lg:text-2xl font-semibold mb-4">
                 Slide <span className="text-[#CE4760]">{currentIndex + 1}</span> of {imageUrls.length}
@@ -194,15 +192,16 @@ function PresentationViewer() {
               </div>
             </div>
           </div>
-
           <div className="w-full lg:w-1/3 bg-[#2F4550] rounded-lg shadow-md p-6 text-black">
-            <Chat socketRef={socketRef} roomId={roomId} height={'400px'} />
+            <div className="mt-6 bg-white text-[#2F4550] rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-4">Quiz Questions:</h3>
+              {JSON.stringify(quiz)}
+            </div>
           </div>
         </div>
       )}
     </div>
   );
 }
-
 
 export default PresentationViewer;

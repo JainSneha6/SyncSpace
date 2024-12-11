@@ -70,6 +70,12 @@ app.post('/uploadPpt', upload.single('file'), async (req, res) => {
 io.on('connection', (socket) => {
   console.log('A user connected');
 
+  socket.on('screenshot', (data) => {
+    // Save the image or do something with it
+    console.log('Received screenshot for room', data.roomId);
+    console.log('Image data:', data.image);
+  });
+
   socket.on('join room', (roomID) => {
     if (rooms.has(roomID)) {
       rooms.get(roomID).push(socket.id);

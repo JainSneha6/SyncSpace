@@ -6,9 +6,7 @@ import { TbOvalVertical } from 'react-icons/tb';
 import { BiPolygon, BiStar } from 'react-icons/bi';
 import { FaArrowsAltH, FaFilePowerpoint, FaGripLines, FaMicrophone, FaMicrophoneSlash, FaPalette } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import Chat from "./Chat";
 import StickyNote from './StickyNote';
-import AudioRoom from "./Mic";
 
 const Canvas = ({ roomId }) => {
   const socketRef = useRef(null);
@@ -537,9 +535,6 @@ const Canvas = ({ roomId }) => {
           PPT
         </button>
 
-        {/* Audio Room */}
-        <AudioRoom roomId={roomId} />
-
         {/* Tool Buttons */}
         <div className="grid grid-cols-3 lg:grid-cols-2 gap-4">
           {[
@@ -627,11 +622,6 @@ const Canvas = ({ roomId }) => {
             onCreateNewNote={handleCreateNewNote}
           />
         ))}
-      </div>
-
-      {/* Chat Section */}
-      <div className="w-full lg:w-1/3 bg-[#2F4550] shadow-xl lg:rounded-l-lg p-4">
-        <Chat socketRef={socketRef} roomId={roomId} height={"400px"} />
       </div>
     </div>
 
