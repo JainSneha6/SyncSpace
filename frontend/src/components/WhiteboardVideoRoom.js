@@ -9,8 +9,7 @@ import Canvas from './Whiteboard';
 
 
 const WhiteBoardVideoRoom = () => {
-    // const [roomId, setRoomId] = useState('');
-    const { roomId } = useParams();
+    const [roomId, setRoomId] = useState('');
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
     const [isCameraOn, setIsCameraOn] = useState(true);
@@ -19,7 +18,6 @@ const WhiteBoardVideoRoom = () => {
     const peersRef = useRef([]);
     const streamRef = useRef();
     const navigate = useNavigate();
-    const [roomID, setRoomID] = useState(roomId);
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
 
@@ -121,7 +119,7 @@ const WhiteBoardVideoRoom = () => {
 
     const handleRoomCreate = () => {
         const newRoomId = Math.random().toString(36).substring(7);
-        setRoomID(newRoomId);
+        setRoomId(newRoomId);
     };
 
     const handleRoomJoin = (e) => {
@@ -163,7 +161,7 @@ const WhiteBoardVideoRoom = () => {
                             <input
                                 type="text"
                                 value={roomId}
-                                onChange={(e) => setRoomID(e.target.value)}
+                                onChange={(e) => setRoomId(e.target.value)}
                                 placeholder="Enter Room ID"
                                 className="w-full p-4 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#CE4760] text-lg"
                             />
