@@ -5,7 +5,6 @@ function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-r from-[#CE4760] via-[#2F4550] to-[#CE4760] flex flex-col items-center justify-center p-6 text-white">
       <div className="text-center">
-        <h1 className="text-5xl font-bold mb-6">Welcome to Sync Space</h1>
         <p className="text-xl mb-12">Choose your preferred session to begin</p>
         
         <div className="flex flex-col sm:flex-row sm:gap-12 gap-8">

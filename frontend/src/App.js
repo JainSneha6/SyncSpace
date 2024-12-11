@@ -6,6 +6,7 @@ import AudioRoom from './components/Mic';
 import PptViewer from './components/PptViewer';
 import WhiteBoardVideoRoom from './components/WhiteboardVideoRoom';
 import HomePage from './components/HomePage';
+import VideoRoomPPT from './components/VideoRoomPPT';
 
 function App() {
   return (
@@ -13,7 +14,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/video-call-whiteboard" element={<WhiteBoardVideoRoom/>} />
-        <Route path="/video-call-ppt-viewer" element={<VideoRoom/>} />
+        <Route path="/video-call-ppt-viewer" element={<VideoRoomPPT/>} />
         <Route path="/whiteboard/:roomId" element={<Whiteboard />} />
         <Route path="/mic" element={<AudioRoom />} />
         <Route path="/ppt/:roomId" element={<PptViewer />} />
