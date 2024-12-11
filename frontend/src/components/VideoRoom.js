@@ -5,6 +5,7 @@ import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import Chat from './Chat'; // Import the Chat component
+import PresentationViewer from './PptViewer';
 
 const VideoRoom = () => {
     const [roomId, setRoomId] = useState('');
@@ -214,8 +215,6 @@ const VideoRoom = () => {
                             <Chat socketRef={socketRef} roomId={roomId} height={'40px'} />
                         </div>
                     </div>
-    
-                    {/* Controls */}
                     <div className="flex flex-wrap gap-6 justify-center mt-8">
                         <button
                             onClick={toggleMic}
@@ -230,7 +229,7 @@ const VideoRoom = () => {
                             {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                         </button>
                         <div className="flex gap-6">
-                        <button
+                        {/* <button
                             onClick={goToWhiteboard}
                             className="bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
                             <FaPalette className="inline-block mr-2" />
@@ -241,9 +240,10 @@ const VideoRoom = () => {
                             className="bg-[#2F4550] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
                             <FaFilePowerpoint className="inline-block mr-2" />
                             PptViewer
-                        </button>
-                </div>
-                    </div>
+                        </button> */}
+                </div> 
+                     </div>
+                    <PresentationViewer roomId={roomId}/>
                 </motion.div>
             )}
         </div>

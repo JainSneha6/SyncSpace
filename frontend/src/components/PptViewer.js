@@ -4,6 +4,30 @@ import { io } from 'socket.io-client';
 import { useParams } from 'react-router-dom';
 import Chat from './Chat';
 import AudioRoom from "./Mic";
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+
+// Set the worker source
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.13.216/pdf.worker.min.js`;
+
+const extractTextFromPDF = async (file) => {
+  try {
+    const pdfData = await file.arrayBuffer();
+    const pdfDoc = await getDocument({ data: pdfData }).promise;
+    let text = '';
+
+    for (let i = 1; i <= pdfDoc.numPages; i++) {
+      const page = await pdfDoc.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item) => item.str).join(' ');
+      text += `Page ${i}:\n${pageText}\n\n`;
+    }
+
+    return text.trim();
+  } catch (error) {
+    console.error('Error extracting text from PDF:', error);
+    throw new Error('Failed to extract text from PDF.');
+  }
+};
 
 function PresentationViewer() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -52,6 +76,14 @@ function PresentationViewer() {
     }
 
     setLoading(true);
+
+    const extractedText = await extractTextFromPDF(selectedFile);
+    console.log('Extracted text:', extractedText);
+
+    const dataToSend = {
+        content: extractedText,
+    };
+
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('roomId', roomId);
@@ -91,6 +123,7 @@ function PresentationViewer() {
       socketRef.current.emit('slideChanged', { roomId, currentIndex: newIndex });
     }
   };
+
 
   return (
     <div className="min-h-screen bg-white text-white flex flex-col items-center justify-center p-6 relative">
