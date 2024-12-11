@@ -8,7 +8,7 @@ import { FaArrowsAltH, FaFilePowerpoint, FaGripLines, FaMicrophone, FaMicrophone
 import { useNavigate } from "react-router-dom";
 import StickyNote from './StickyNote';
 
-const Canvas = ({ roomId }) => {
+const Canvas = ({ roomId, quiz }) => {
   const socketRef = useRef(null);
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -518,24 +518,13 @@ const Canvas = ({ roomId }) => {
     return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255, 255];
   };
 
-  const goToPptViewer = () => {
-    navigate(`/ppt/${roomId}`);
-  };
+  const navigateToQuiz = () => {
+    navigate('/quiz', { state: { quizData: quiz } }); 
+  }
 
   return (
-    <div className="min-h-screen bg-[#2F4550] flex flex-col lg:flex-row overflow-hidden">
-      {/* Toolbar Section */}
-      <div className="bg-[#2F4550] shadow-xl lg:rounded-r-lg p-4 flex flex-col gap-4 w-full lg:w-auto lg:min-w-[120px]">
-        {/* PPT Viewer Button */}
-        <button
-          onClick={goToPptViewer}
-          className="bg-[#CE4760] text-white py-2 px-4 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-        >
-          <FaFilePowerpoint className="inline-block mr-2" />
-          PPT
-        </button>
-
-        {/* Tool Buttons */}
+    <div className="min-h-screen bg-[#CE4760] flex flex-col lg:flex-row overflow-hidden">
+      <div className="bg-white shadow-xl lg:rounded-r-lg p-4 flex flex-col gap-4 w-full lg:w-auto lg:min-w-[120px]">
         <div className="grid grid-cols-3 lg:grid-cols-2 gap-4">
           {[
             { tool: "brush", icon: <RiBrushFill className="text-xl" /> },
@@ -555,8 +544,8 @@ const Canvas = ({ roomId }) => {
               key={tool}
               onClick={() => setTool(tool)}
               className={`p-3 rounded-full shadow-md transition-all ${tool === tool
-                ? "bg-[#CE4760] text-white"
-                : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"
+                ? "bg-[#CE4760] text-white transform transition duration-300 hover:scale-105 hover:bg-[#2F4550]"
+                : "bg-white text-[#CE4760] transform transition duration-300 hover:scale-105 hover:bg-[#2F4550]"
                 }`}
             >
               {icon}
@@ -598,6 +587,14 @@ const Canvas = ({ roomId }) => {
           >
             <RiDeleteBinLine className="text-xl" />
           </button>
+          
+          <button 
+              className="bg-[#CE4760] text-white p-4 rounded-lg shadow-lg transition-all duration-300 hover:bg-[#2F4550] hover:scale-105"
+              onClick={navigateToQuiz}
+            >
+              Take the Quiz!
+          </button>
+
         </div>
       </div>
 

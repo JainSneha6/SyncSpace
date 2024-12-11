@@ -151,8 +151,6 @@ const Chat = ({ socketRef, roomId, height }) => {
           >
             <FaImage className="w-6 h-6" />
           </button>
-  
-          {/* Emoji Button */}
           <button
             type="button"
             className="w-12 h-12 text-white bg-[#CE4760] hover:bg-[#2F4550] rounded-lg transition duration-300 flex items-center justify-center"

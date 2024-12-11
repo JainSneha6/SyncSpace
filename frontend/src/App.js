@@ -8,6 +8,7 @@ import WhiteBoardVideoRoom from './components/WhiteboardVideoRoom';
 import HomePage from './components/HomePage';
 import VideoRoomPPT from './components/VideoRoomPPT';
 import Audio from './components/Audio';
+import QuizComponent from './components/QuizComponent';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path='/whiteboardvideo/:roomId' element={<WhiteBoardVideoRoom />} />
         <Route path='/audio' element={<Audio />} />
         <Route path='/video' element={<VideoRoom/>} />
+        <Route path='/quiz' element={<QuizComponent/>} />
       </Routes >
     </Router >
   );

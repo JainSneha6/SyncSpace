@@ -136,25 +136,19 @@ const VideoRoomPPT = () => {
     };
 
     return (
-        <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
-            {/* Background Gradient for Visual Appeal */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#CE4760] via-[#2F4550] to-[#CE4760] opacity-10 pointer-events-none"></div>
-    
-            {/* Room Creation or Join Section */}
+        <div className="min-h-screen bg-gradient-to-r from-[#CE4760] via-[#2F4550] to-[#CE4760] text-white flex flex-col items-center justify-center p-6">
             {!roomId ? (
                 <motion.div
-                    className="w-full max-w-lg bg-gradient-to-br from-white to-[#F5F5F5] rounded-lg shadow-2xl p-10"
-                    initial={{ opacity: 0, scale: 0.8 }}
+                    className="w-full max-w-lg bg-white text-[#2F4550] rounded-lg shadow-2xl p-10"
+                    initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}>
-                    <h2 className="text-3xl font-semibold text-center mb-6 text-[#2F4550]">
+                    <h2 className="text-3xl font-semibold text-center mb-6">
                         Create or Join a Room
                     </h2>
-    
                     <div className="flex flex-col gap-6">
                         <button
                             onClick={handleRoomCreate}
-                            className="w-full bg-[#CE4760] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
-                            <FaCamera className="inline-block mr-2" />
+                            className="w-full bg-[#CE4760] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform">
                             Create Room
                         </button>
                         <form onSubmit={handleRoomJoin} className="flex flex-col gap-6">
@@ -163,12 +157,11 @@ const VideoRoomPPT = () => {
                                 value={roomId}
                                 onChange={(e) => setRoomId(e.target.value)}
                                 placeholder="Enter Room ID"
-                                className="w-full p-4 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#CE4760] text-lg"
+                                className="w-full p-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#CE4760]"
                             />
                             <button
                                 type="submit"
-                                className="w-full bg-[#2F4550] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
-                                <FaUserPlus className="inline-block mr-2" />
+                                className="w-full bg-[#2F4550] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform">
                                 Join Room
                             </button>
                         </form>
@@ -176,16 +169,13 @@ const VideoRoomPPT = () => {
                 </motion.div>
             ) : (
                 <motion.div
-                    className="w-full max-w-7xl bg-white rounded-lg shadow-2xl p-10"
+                    className="w-full max-w-7xl bg-white text-[#2F4550] rounded-lg shadow-2xl p-10"
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}>
                     <h2 className="text-2xl font-semibold text-center mb-6">
                         Room ID: <span className="text-[#CE4760]">{roomId}</span>
                     </h2>
-    
-                    {/* Dynamic Layout with Split Screen */}
                     <div className="flex flex-col lg:flex-row gap-8">
-                        {/* Left Side: Video Section */}
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="relative bg-gray-100 rounded-lg overflow-hidden shadow-md">
                                 <video
@@ -195,7 +185,7 @@ const VideoRoomPPT = () => {
                                     autoPlay
                                     className="w-full h-full object-cover"
                                 />
-                                <div className="absolute top-0 left-0 bg-[#CE4760] text-white text-sm font-semibold px-3 py-1 rounded-bl-lg">
+                                <div className="absolute top-0 left-0 bg-[#CE4760] text-white px-3 py-1 rounded-bl-lg">
                                     You
                                 </div>
                             </div>
@@ -209,46 +199,28 @@ const VideoRoomPPT = () => {
                                 </div>
                             )}
                         </div>
-    
-                        {/* Right Side: Chat Section */}
-                        <div className="w-full lg:w-1/3 bg-[#F5F5F5] rounded-lg shadow-md p-6">
-                            <Chat socketRef={socketRef} roomId={roomId} height={'40px'} />
-                        </div>
                     </div>
                     <div className="flex flex-wrap gap-6 justify-center mt-8">
                         <button
                             onClick={toggleMic}
-                            className="bg-[#CE4760] text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform duration-300">
+                            className="bg-[#CE4760] text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform">
                             {isMicOn ? <FaMicrophone className="inline-block mr-2" /> : <FaMicrophoneSlash className="inline-block mr-2" />}
                             {isMicOn ? "Mute" : "Unmute"}
                         </button>
                         <button
                             onClick={toggleCamera}
-                            className="bg-[#2F4550] text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform duration-300">
-                            {isCameraOn ? <FaCamera className="inline-block mr-2" /> : <FaCamera className="inline-block mr-2 opacity-50" />}
+                            className="bg-[#2F4550] text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform">
                             {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                         </button>
-                        <div className="flex gap-6">
-                        {/* <button
-                            onClick={goToWhiteboard}
-                            className="bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
-                            <FaPalette className="inline-block mr-2" />
-                            Whiteboard
-                        </button>
-                        <button
-                            onClick={goToPptViewer}
-                            className="bg-[#2F4550] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
-                            <FaFilePowerpoint className="inline-block mr-2" />
-                            PptViewer
-                        </button> */}
-                </div> 
-                     </div>
-                    <PresentationViewer roomId={roomId}/>
+                    </div>
+                    <div className='mt-5'>
+                    <PresentationViewer roomId={roomId} />
+                    </div>
                 </motion.div>
             )}
         </div>
-    );    
-};    
+    );
+};
 
 const Video = ({ peer }) => {
     const ref = useRef();

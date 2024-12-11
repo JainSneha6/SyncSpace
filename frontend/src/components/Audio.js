@@ -4,8 +4,6 @@ import io from 'socket.io-client';
 import Peer from 'simple-peer';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import Chat from './Chat'; // Import the Chat component
-import PresentationViewer from './PptViewer';
 import axios from 'axios';
 
 const Audio = () => {
@@ -161,11 +159,6 @@ const Audio = () => {
         }, 30000); // 30 seconds interval
     };
 
-
-
-
-
-
     const createPeer = (userToSignal, callerID, stream) => {
         const peer = new Peer({
             initiator: true,
@@ -206,14 +199,6 @@ const Audio = () => {
         // Room ID is already set in state
     };
 
-    const goToWhiteboard = () => {
-        navigate(`/whiteboard/${roomId}`);
-    };
-
-    const goToPptViewer = () => {
-        navigate(`/ppt/${roomId}`);
-    };
-
     return (
         <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
             {/* Background Gradient for Visual Appeal */}
@@ -228,9 +213,6 @@ const Audio = () => {
                     <h2 className="text-3xl font-semibold text-center mb-6 text-[#2F4550]">
                         Create or Join a Room
                     </h2>
-
-
-
                     <div className="flex flex-col gap-6">
                         <button
                             onClick={handleRoomCreate}
@@ -264,13 +246,13 @@ const Audio = () => {
                         Room ID: <span className="text-[#CE4760]">{roomId}</span>
                     </h2>
 
-                    {/* Display the Backend Response */}
                     {backendResponse && (
                         <div className="w-full bg-[#E0F7FA] rounded-lg shadow-md p-4 mt-6">
                             <h3 className="text-xl font-semibold mb-4">Backend Response:</h3>
                             <pre className="text-lg whitespace-pre-wrap">{JSON.stringify(backendResponse, null, 2)}</pre>
                         </div>
                     )}
+
                     <div>
                         {recordings.map((audioURL, index) => (
                             <div key={index}>
@@ -282,9 +264,7 @@ const Audio = () => {
                         ))}
                     </div>
 
-                    {/* Dynamic Layout with Split Screen */}
                     <div className="flex flex-col lg:flex-row gap-8">
-                        {/* Left Side: Video Section */}
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="relative bg-gray-100 rounded-lg overflow-hidden shadow-md">
                                 <video
@@ -308,11 +288,6 @@ const Audio = () => {
                                 </div>
                             )}
                         </div>
-
-                        {/* Right Side: Chat Section
-                        <div className="w-full lg:w-1/3 bg-[#F5F5F5] rounded-lg shadow-md p-6">
-                            <Chat socketRef={socketRef} roomId={roomId} height={'40px'} />
-                        </div> */}
                     </div>
                     <div className="flex flex-wrap gap-6 justify-center mt-8">
                         <button
@@ -327,20 +302,6 @@ const Audio = () => {
                             {isCameraOn ? <FaCamera className="inline-block mr-2" /> : <FaCamera className="inline-block mr-2 opacity-50" />}
                             {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                         </button>
-                        <div className="flex gap-6">
-                            {/* <button
-                            onClick={goToWhiteboard}
-                            className="bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
-                            <FaPalette className="inline-block mr-2" />
-                            Whiteboard
-                        </button>
-                        <button
-                            onClick={goToPptViewer}
-                            className="bg-[#2F4550] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
-                            <FaFilePowerpoint className="inline-block mr-2" />
-                            PptViewer
-                        </button> */}
-                        </div>
                     </div>
 
                 </motion.div>

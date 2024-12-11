@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import Quiz from './QuizComponent';
 
 // Set the worker source
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.13.216/pdf.worker.min.js`;
@@ -37,6 +38,7 @@ function PresentationViewer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const socketRef = useRef(null);
   const { roomId } = useParams();
+  const navigate = useNavigate();
   const [quiz, setQuiz] = useState([]);
 
   useEffect(() => {
@@ -131,13 +133,17 @@ function PresentationViewer() {
     }
   };
 
+  const navigateToQuiz = () => {
+    navigate('/quiz', { state: { quizData: quiz } }); 
+  }
+
   return (
     <div className="min-h-screen bg-white text-white flex flex-col items-center justify-center p-6 relative">
       {/* Background Gradient for Visual Appeal */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-[#CE4760] via-[#2F4550] to-[#CE4760] opacity-10 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-white opacity-10 pointer-events-none"></div>
 
       {!imageUrls.length && (
-        <div className="w-full max-w-lg bg-gradient-to-br from-white to-[#F5F5F5] rounded-lg shadow-2xl p-10">
+        <div className="w-full max-w-lg bg-white rounded-lg shadow-2xl p-10">
           <h2 className="text-3xl font-semibold text-center mb-6 text-[#2F4550]">
             Upload a PowerPoint Presentation
           </h2>
@@ -192,11 +198,13 @@ function PresentationViewer() {
               </div>
             </div>
           </div>
-          <div className="w-full lg:w-1/3 bg-[#2F4550] rounded-lg shadow-md p-6 text-black">
-            <div className="mt-6 bg-white text-[#2F4550] rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-4">Quiz Questions:</h3>
-              {JSON.stringify(quiz)}
-            </div>
+          <div>
+          <button 
+              className="bg-[#CE4760] text-white p-4 rounded-lg shadow-lg transition-all duration-300 hover:bg-[#2F4550] hover:scale-105"
+              onClick={navigateToQuiz}
+            >
+              Take the Quiz!
+            </button>
           </div>
         </div>
       )}
