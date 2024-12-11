@@ -6,8 +6,9 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import Chat from './Chat'; // Import the Chat component
 import PresentationViewer from './PptViewer';
+import axios from 'axios';
 
-const VideoRoom = () => {
+const Audio = () => {
     const [roomId, setRoomId] = useState('');
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
@@ -19,6 +20,10 @@ const VideoRoom = () => {
     const navigate = useNavigate();
     const [recordings, setRecordings] = useState([]); // State for storing recorded audio
     const recorderRef = useRef(); // MediaRecorder reference
+    const [transcription, setTranscription] = useState(''); // State to store transcribed text
+    const recognitionRef = useRef(null); // Reference to speech recognition
+    const [backendResponse, setBackendResponse] = useState(null);
+
 
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
@@ -30,7 +35,7 @@ const VideoRoom = () => {
                     userVideoRef.current.srcObject = stream;
                 }
 
-                startRecording(stream); // Start audio recording
+                // startRecording(stream); // Start audio recording
 
                 socketRef.current.emit('join room', roomId);
 
@@ -60,6 +65,19 @@ const VideoRoom = () => {
                     const item = peersRef.current.find(p => p.peerID === payload.id);
                     item.peer.signal(payload.signal);
                 });
+                if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+                    recognitionRef.current = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                    recognitionRef.current.lang = 'en-US';
+                    recognitionRef.current.continuous = true; // Keep listening
+                    recognitionRef.current.interimResults = true; // Allow interim results
+                    recognitionRef.current.onresult = handleSpeechResult;
+                    recognitionRef.current.start();
+                } else {
+                    console.error('Speech Recognition API not supported');
+                }
+
+                // Start audio recording for 30 seconds
+                startRecording(stream);
             })
             .catch(err => {
                 console.error("Error accessing media devices:", err);
@@ -72,6 +90,9 @@ const VideoRoom = () => {
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(track => track.stop());
             }
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+            }
         };
     }, [roomId]);
 
@@ -81,6 +102,38 @@ const VideoRoom = () => {
             track.enabled = !track.enabled;
         });
         setIsMicOn(prev => !prev);
+    };
+
+    const handleSpeechResult = (event) => {
+        let text = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            text += event.results[i][0].transcript;
+        }
+        setTranscription(text); // Store the transcribed text
+    };
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (transcription) {
+                sendTranscriptionToBackend(transcription); // Send transcription to backend
+                setTranscription(''); // Clear transcription after sending
+            }
+        }, 30000); // Every 30 seconds
+
+        return () => clearInterval(interval);
+    }, [transcription]);
+
+    const sendTranscriptionToBackend = (text) => {
+        console.log(text);
+        axios.post('https://backendfianlsih.azurewebsites.net/trans_quiz/get_questions', { transcript: text })
+            .then(response => {
+                console.log('Transcription saved successfully:', response.data);
+                // Update the backendResponse state with the data from the backend
+                setBackendResponse(response.data);
+            })
+            .catch(error => {
+                console.error('Error saving transcription:', error);
+            });
     };
 
     const toggleCamera = () => {
@@ -98,15 +151,19 @@ const VideoRoom = () => {
         recorder.ondataavailable = (e) => {
             const audioBlob = e.data;
             const audioURL = URL.createObjectURL(audioBlob);
-            setRecordings((prev) => [...prev, audioURL]);
+            // You can save the audio URL or use it if needed
         };
 
         recorder.start();
         setInterval(() => {
             recorder.stop();
-            recorder.start();
-        }, 30000); // Record every 30 seconds
+            recorder.start(); // Restart recording every 30 seconds
+        }, 30000); // 30 seconds interval
     };
+
+
+
+
 
 
     const createPeer = (userToSignal, callerID, stream) => {
@@ -172,6 +229,8 @@ const VideoRoom = () => {
                         Create or Join a Room
                     </h2>
 
+
+
                     <div className="flex flex-col gap-6">
                         <button
                             onClick={handleRoomCreate}
@@ -204,6 +263,14 @@ const VideoRoom = () => {
                     <h2 className="text-2xl font-semibold text-center mb-6">
                         Room ID: <span className="text-[#CE4760]">{roomId}</span>
                     </h2>
+
+                    {/* Display the Backend Response */}
+                    {backendResponse && (
+                        <div className="w-full bg-[#E0F7FA] rounded-lg shadow-md p-4 mt-6">
+                            <h3 className="text-xl font-semibold mb-4">Backend Response:</h3>
+                            <pre className="text-lg whitespace-pre-wrap">{JSON.stringify(backendResponse, null, 2)}</pre>
+                        </div>
+                    )}
                     <div>
                         {recordings.map((audioURL, index) => (
                             <div key={index}>
@@ -242,10 +309,10 @@ const VideoRoom = () => {
                             )}
                         </div>
 
-                        {/* Right Side: Chat Section */}
+                        {/* Right Side: Chat Section
                         <div className="w-full lg:w-1/3 bg-[#F5F5F5] rounded-lg shadow-md p-6">
                             <Chat socketRef={socketRef} roomId={roomId} height={'40px'} />
-                        </div>
+                        </div> */}
                     </div>
                     <div className="flex flex-wrap gap-6 justify-center mt-8">
                         <button
@@ -275,7 +342,7 @@ const VideoRoom = () => {
                         </button> */}
                         </div>
                     </div>
-                    <PresentationViewer roomId={roomId} />
+
                 </motion.div>
             )}
         </div>
@@ -306,4 +373,4 @@ const Video = ({ peer }) => {
     );
 };
 
-export default VideoRoom;
+export default Audio;
