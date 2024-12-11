@@ -5,6 +5,7 @@ import VideoRoom from './components/VideoRoom';
 import AudioRoom from './components/Mic';
 import PptViewer from './components/PptViewer';
 import WhiteBoardVideoRoom from './components/WhiteboardVideoRoom';
+import Audio from './components/Audio';
 
 function App() {
   return (
@@ -15,7 +16,7 @@ function App() {
         <Route path="/mic" element={<AudioRoom />} />
         <Route path="/ppt/:roomId" element={<PptViewer />} />
         <Route path='/whiteboardvideo/:roomId' element={<WhiteBoardVideoRoom />} />
-        <Route path='/audio' element={<Audio />} />
+
       </Routes>
     </Router>
   );
