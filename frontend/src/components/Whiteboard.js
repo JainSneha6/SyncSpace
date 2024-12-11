@@ -10,10 +10,9 @@ import Chat from "./Chat";
 import StickyNote from './StickyNote';
 import AudioRoom from "./Mic";
 
-const Canvas = () => {
+const Canvas = ({ roomId }) => {
   const socketRef = useRef(null);
   const canvasRef = useRef(null);
-  const roomId = useParams().roomId; // Assuming roomId is passed via route params
   const [isDrawing, setIsDrawing] = useState(false);
   const [tool, setTool] = useState("brush");
   const [startPoint, setStartPoint] = useState(null);
@@ -561,8 +560,8 @@ const Canvas = () => {
               key={tool}
               onClick={() => setTool(tool)}
               className={`p-3 rounded-full shadow-md transition-all ${tool === tool
-                  ? "bg-[#CE4760] text-white"
-                  : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"
+                ? "bg-[#CE4760] text-white"
+                : "bg-white text-[#CE4760] hover:bg-[#CE4760] hover:text-white"
                 }`}
             >
               {icon}
