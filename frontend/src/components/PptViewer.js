@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useParams } from 'react-router-dom';
-import Chat from './Chat';
-import AudioRoom from "./Mic";
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 
 // Set the worker source
@@ -20,8 +18,8 @@ const extractTextFromPDF = async (file) => {
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map((item) => item.str).join(' ');
       text += `Page ${i}:
-${pageText}
-\n`;
+      ${pageText}
+      \n`;
     }
 
     return text.trim();
@@ -164,7 +162,6 @@ function PresentationViewer() {
       {imageUrls.length > 0 && (
         <div className="w-full max-w-5xl bg-[#2F4550] rounded-lg shadow-2xl p-10 flex flex-col lg:flex-row gap-8">
           <div className="flex-1">
-            <AudioRoom roomId={roomId} />
             <div className="relative flex flex-col items-center justify-center gap-4">
               <h2 className="text-xl lg:text-2xl font-semibold mb-4">
                 Slide <span className="text-[#CE4760]">{currentIndex + 1}</span> of {imageUrls.length}
@@ -196,7 +193,6 @@ function PresentationViewer() {
             </div>
           </div>
           <div className="w-full lg:w-1/3 bg-[#2F4550] rounded-lg shadow-md p-6 text-black">
-            <Chat socketRef={socketRef} roomId={roomId} height={'400px'} />
             <div className="mt-6 bg-white text-[#2F4550] rounded-lg p-4">
               <h3 className="text-lg font-semibold mb-4">Quiz Questions:</h3>
               {JSON.stringify(quiz)}
