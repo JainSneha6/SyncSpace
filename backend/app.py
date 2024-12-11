@@ -47,17 +47,18 @@ def convert_pdf_to_images(uploaded_file_url, image_type="jpg"):
 
 @app.route('/upload', methods=['POST'])
 def upload_ppt():
+    print(1)
     if 'file' not in request.files:
         return jsonify({"error": "No file part"}), 400
-
+    print(2)
     file = request.files['file']
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
-
+    print(3)
     # Create a unique name for the uploaded file
     unique_id = str(uuid.uuid4())
     file_name = f"{unique_id}_{file.filename}"
-
+    print(4)
     try:
         # Read file content into memory
         file_stream = io.BytesIO(file.read())
@@ -86,4 +87,4 @@ def upload_ppt():
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True,host="0.0.0.0", port=5000)
