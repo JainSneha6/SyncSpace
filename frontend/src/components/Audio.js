@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import Chat from './Chat'; // Import the Chat component
 import PresentationViewer from './PptViewer';
 
-const VideoRoom = () => {
+const Audio = () => {
     const [roomId, setRoomId] = useState('');
     const [peers, setPeers] = useState([]);
     const [isMicOn, setIsMicOn] = useState(true);
@@ -91,159 +91,180 @@ const VideoRoom = () => {
         setIsCameraOn(prev => !prev);
     };
 
-    const startRecording = () => {
-        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-            mediaRecorderRef.current = new MediaRecorder(stream);
-            audioChunksRef.current = [];
-            mediaRecorderRef.current.ondataavailable = event => {
-                audioChunksRef.current.push(event.data);
-            };
-            mediaRecorderRef.current.onstop = () => {
-                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/ogg; codecs=opus' });
-                setRecordedAudio(URL.createObjectURL(audioBlob));
-            };
-            mediaRecorderRef.current.start();
-            setIsRecording(true);
-
-            setTimeout(() => {
-                if (mediaRecorderRef.current.state !== "inactive") {
-                    mediaRecorderRef.current.stop();
-                    setIsRecording(false);
-                }
-            }, 30000); // Stop recording after 30 seconds
+    const createPeer = (userToSignal, callerID, stream) => {
+        const peer = new Peer({
+            initiator: true,
+            trickle: false,
+            stream,
         });
+
+        peer.on('signal', signal => {
+            socketRef.current.emit('sending signal', { userToSignal, callerID, signal });
+        });
+
+        return peer;
     };
 
-    const handleRoomCreate = () => {
-        const newRoomId = Math.random().toString(36).substring(7);
-        setRoomId(newRoomId);
-    };
+    const addPeer = (incomingSignal, callerID, stream) => {
+        const peer = new Peer({
+            initiator: false,
+            trickle: false,
+            stream,
+        });
 
-    const handleRoomJoin = (e) => {
-        e.preventDefault();
-        // Room ID is already set in state
-    };
+        const startRecording = () => {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                mediaRecorderRef.current = new MediaRecorder(stream);
+                audioChunksRef.current = [];
+                mediaRecorderRef.current.ondataavailable = event => {
+                    audioChunksRef.current.push(event.data);
+                };
+                mediaRecorderRef.current.onstop = () => {
+                    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/ogg; codecs=opus' });
+                    setRecordedAudio(URL.createObjectURL(audioBlob));
+                };
+                mediaRecorderRef.current.start();
+                setIsRecording(true);
 
-    const goToWhiteboard = () => {
-        navigate(`/whiteboard/${roomId}`);
-    };
+                setTimeout(() => {
+                    if (mediaRecorderRef.current.state !== "inactive") {
+                        mediaRecorderRef.current.stop();
+                        setIsRecording(false);
+                    }
+                }, 30000); // Stop recording after 30 seconds
+            });
+        };
 
-    const goToPptViewer = () => {
-        navigate(`/ppt/${roomId}`);
-    };
+        const handleRoomCreate = () => {
+            const newRoomId = Math.random().toString(36).substring(7);
+            setRoomId(newRoomId);
+        };
 
-    return (
-        <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#CE4760] via-[#2F4550] to-[#CE4760] opacity-10 pointer-events-none"></div>
+        const handleRoomJoin = (e) => {
+            e.preventDefault();
+            // Room ID is already set in state
+        };
 
-            {!roomId ? (
-                <motion.div
-                    className="w-full max-w-lg bg-gradient-to-br from-white to-[#F5F5F5] rounded-lg shadow-2xl p-10"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}>
-                    <h2 className="text-3xl font-semibold text-center mb-6 text-[#2F4550]">
-                        Create or Join a Room
-                    </h2>
-                    <div className="flex flex-col gap-6">
-                        <button
-                            onClick={handleRoomCreate}
-                            className="w-full bg-[#CE4760] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
-                            <FaCamera className="inline-block mr-2" />
-                            Create Room
-                        </button>
-                        <form onSubmit={handleRoomJoin} className="flex flex-col gap-6">
-                            <input
-                                type="text"
-                                value={roomId}
-                                onChange={(e) => setRoomId(e.target.value)}
-                                placeholder="Enter Room ID"
-                                className="w-full p-4 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#CE4760] text-lg"
-                            />
+        const goToWhiteboard = () => {
+            navigate(`/whiteboard/${roomId}`);
+        };
+
+        const goToPptViewer = () => {
+            navigate(`/ppt/${roomId}`);
+        };
+
+        return (
+            <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#CE4760] via-[#2F4550] to-[#CE4760] opacity-10 pointer-events-none"></div>
+
+                {!roomId ? (
+                    <motion.div
+                        className="w-full max-w-lg bg-gradient-to-br from-white to-[#F5F5F5] rounded-lg shadow-2xl p-10"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}>
+                        <h2 className="text-3xl font-semibold text-center mb-6 text-[#2F4550]">
+                            Create or Join a Room
+                        </h2>
+                        <div className="flex flex-col gap-6">
                             <button
-                                type="submit"
-                                className="w-full bg-[#2F4550] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
-                                <FaUserPlus className="inline-block mr-2" />
-                                Join Room
+                                onClick={handleRoomCreate}
+                                className="w-full bg-[#CE4760] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
+                                <FaCamera className="inline-block mr-2" />
+                                Create Room
                             </button>
-                        </form>
-                    </div>
-                </motion.div>
-            ) : (
-                <motion.div
-                    className="w-full max-w-7xl bg-white rounded-lg shadow-2xl p-10"
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}>
-                    <h2 className="text-2xl font-semibold text-center mb-6">
-                        Room ID: <span className="text-[#CE4760]">{roomId}</span>
-                    </h2>
-
-                    <div className="flex flex-col lg:flex-row gap-8">
-                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div className="relative bg-gray-100 rounded-lg overflow-hidden shadow-md">
-                                <video
-                                    playsInline
-                                    muted
-                                    ref={userVideoRef}
-                                    autoPlay
-                                    className="w-full h-full object-cover"
+                            <form onSubmit={handleRoomJoin} className="flex flex-col gap-6">
+                                <input
+                                    type="text"
+                                    value={roomId}
+                                    onChange={(e) => setRoomId(e.target.value)}
+                                    placeholder="Enter Room ID"
+                                    className="w-full p-4 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#CE4760] text-lg"
                                 />
-                                <div className="absolute top-0 left-0 bg-[#CE4760] text-white text-sm font-semibold px-3 py-1 rounded-bl-lg">
-                                    You
+                                <button
+                                    type="submit"
+                                    className="w-full bg-[#2F4550] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
+                                    <FaUserPlus className="inline-block mr-2" />
+                                    Join Room
+                                </button>
+                            </form>
+                        </div>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        className="w-full max-w-7xl bg-white rounded-lg shadow-2xl p-10"
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}>
+                        <h2 className="text-2xl font-semibold text-center mb-6">
+                            Room ID: <span className="text-[#CE4760]">{roomId}</span>
+                        </h2>
+
+                        <div className="flex flex-col lg:flex-row gap-8">
+                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="relative bg-gray-100 rounded-lg overflow-hidden shadow-md">
+                                    <video
+                                        playsInline
+                                        muted
+                                        ref={userVideoRef}
+                                        autoPlay
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute top-0 left-0 bg-[#CE4760] text-white text-sm font-semibold px-3 py-1 rounded-bl-lg">
+                                        You
+                                    </div>
                                 </div>
+                                {peers.length > 0 ? (
+                                    peers.map((peer, index) => (
+                                        <Video key={index} peer={peer} />
+                                    ))
+                                ) : (
+                                    <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg shadow-inner">
+                                        <p className="text-gray-500">Waiting for participants...</p>
+                                    </div>
+                                )}
                             </div>
-                            {peers.length > 0 ? (
-                                peers.map((peer, index) => (
-                                    <Video key={index} peer={peer} />
-                                ))
-                            ) : (
-                                <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg shadow-inner">
-                                    <p className="text-gray-500">Waiting for participants...</p>
-                                </div>
-                            )}
+
+                            <div className="w-full lg:w-1/3 bg-[#F5F5F5] rounded-lg shadow-md p-6">
+                                <Chat socketRef={socketRef} roomId={roomId} height={'40px'} />
+                                <button
+                                    onClick={startRecording}
+                                    className={`mt-4 py-3 px-6 rounded-full font-medium text-white ${isRecording ? 'bg-red-500' : 'bg-[#2F4550]'
+                                        } hover:scale-105 transition-transform duration-300`}>
+                                    {isRecording ? "Recording..." : "Record Audio"}
+                                </button>
+                                {recordedAudio && (
+                                    <audio controls src={recordedAudio} className="mt-4 w-full" />
+                                )}
+                            </div>
                         </div>
+                        <PresentationViewer roomId={roomId} />
+                    </motion.div>
+                )}
+            </div>
+        );
+    };
 
-                        <div className="w-full lg:w-1/3 bg-[#F5F5F5] rounded-lg shadow-md p-6">
-                            <Chat socketRef={socketRef} roomId={roomId} height={'40px'} />
-                            <button
-                                onClick={startRecording}
-                                className={`mt-4 py-3 px-6 rounded-full font-medium text-white ${isRecording ? 'bg-red-500' : 'bg-[#2F4550]'
-                                    } hover:scale-105 transition-transform duration-300`}>
-                                {isRecording ? "Recording..." : "Record Audio"}
-                            </button>
-                            {recordedAudio && (
-                                <audio controls src={recordedAudio} className="mt-4 w-full" />
-                            )}
-                        </div>
-                    </div>
-                    <PresentationViewer roomId={roomId} />
-                </motion.div>
-            )}
-        </div>
-    );
-};
+    const Video = ({ peer }) => {
+        const ref = useRef();
 
-const Video = ({ peer }) => {
-    const ref = useRef();
+        useEffect(() => {
+            peer.on('stream', stream => {
+                if (ref.current) {
+                    ref.current.srcObject = stream;
+                }
+            });
+        }, [peer]);
 
-    useEffect(() => {
-        peer.on('stream', stream => {
-            if (ref.current) {
-                ref.current.srcObject = stream;
-            }
-        });
-    }, [peer]);
+        return (
+            <div className="relative">
+                <video
+                    playsInline
+                    autoPlay
+                    ref={ref}
+                    className="rounded-lg shadow-lg w-full"
+                />
+                <div className="absolute top-0 left-0 bg-gray-700 text-white text-sm font-semibold p-1 rounded-bl-lg">Participant</div>
+            </div>
+        );
+    };
 
-    return (
-        <div className="relative">
-            <video
-                playsInline
-                autoPlay
-                ref={ref}
-                className="rounded-lg shadow-lg w-full"
-            />
-            <div className="absolute top-0 left-0 bg-gray-700 text-white text-sm font-semibold p-1 rounded-bl-lg">Participant</div>
-        </div>
-    );
-};
-
-export default Audio;
+    export default Audio;
