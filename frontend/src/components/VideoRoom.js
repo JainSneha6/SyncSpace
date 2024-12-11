@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import Chat from './Chat'; // Import the Chat component
 import PresentationViewer from './PptViewer';
+import html2canvas from 'html2canvas'; 
 
 const VideoRoom = () => {
     const [roomId, setRoomId] = useState('');
@@ -18,6 +19,12 @@ const VideoRoom = () => {
     const streamRef = useRef();
     const navigate = useNavigate();
 
+    // Video recording variables
+    const [userRecorder, setUserRecorder] = useState(null);
+    const [peerRecorders, setPeerRecorders] = useState([]);
+    const [userRecordingData, setUserRecordingData] = useState([]);
+    const [peerRecordingData, setPeerRecordingData] = useState([]);
+
     useEffect(() => {
         socketRef.current = io.connect('https://paletteconnect.onrender.com');
 
@@ -27,6 +34,28 @@ const VideoRoom = () => {
                 if (userVideoRef.current) {
                     userVideoRef.current.srcObject = stream;
                 }
+
+                captureAndSendScreenshot();
+
+                // Initialize user video recording for the first 30 seconds
+                const userRecorderInstance = new MediaRecorder(stream);
+                const userRecordedChunks = [];
+                userRecorderInstance.ondataavailable = (e) => {
+                    userRecordedChunks.push(e.data);
+                };
+                userRecorderInstance.onstop = () => {
+                    setUserRecordingData(userRecordedChunks);
+                    // Optionally, you can save the file here
+                    const userBlob = new Blob(userRecordedChunks, { type: 'video/webm' });
+                    const userUrl = URL.createObjectURL(userBlob);
+                    console.log('User Video Recording URL:', userUrl);
+                };
+                setUserRecorder(userRecorderInstance);
+
+                userRecorderInstance.start();
+                setTimeout(() => {
+                    userRecorderInstance.stop();
+                }, 30000); // Stop after 30 seconds
 
                 socketRef.current.emit('join room', roomId);
 
@@ -68,8 +97,72 @@ const VideoRoom = () => {
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(track => track.stop());
             }
+
+            // Stop peer recordings when the component unmounts
+            peerRecorders.forEach(recorder => {
+                recorder.stop();
+            });
         };
     }, [roomId]);
+
+    const captureAndSendScreenshot = () => {
+        if (!userVideoRef.current) {
+            console.error("User video element not available.");
+            return;
+        }
+    
+        html2canvas(userVideoRef.current, { useCORS: true }) // Ensure CORS is handled
+            .then(canvas => {
+                const screenshotData = canvas.toDataURL('image/png');
+                console.log("Screenshot Data:", screenshotData.slice(0, 100)); // Debugging
+                sendScreenshotToBackend(screenshotData);
+            })
+            .catch(error => console.error('Error capturing screenshot:', error));
+    };
+    
+
+    const sendScreenshotToBackend = (imageData) => {
+        fetch('http://localhost:5000/upload_img', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image: imageData }),  // Send base64 image
+        })
+            .then(response => response.json())
+            .then(data => console.log('Screenshot sent successfully:', data))
+            .catch(error => console.error('Error sending screenshot:', error));
+    };
+
+    useEffect(() => {
+        // Set up peer video recording when a peer joins
+        peers.forEach(peer => {
+            const peerRecorderInstance = new MediaRecorder(peer.stream);
+            const peerRecordedChunks = [];
+            peerRecorderInstance.ondataavailable = (e) => {
+                peerRecordedChunks.push(e.data);
+            };
+            peerRecorderInstance.onstop = () => {
+                setPeerRecordingData(prev => [...prev, peerRecordedChunks]);
+                // Optionally, you can save the peer video here
+                const peerBlob = new Blob(peerRecordedChunks, { type: 'video/webm' });
+                const peerUrl = URL.createObjectURL(peerBlob);
+                console.log(`Peer ${peer.peerID} Video Recording URL:`, peerUrl);
+            };
+            peerRecorderInstance.start();
+            setPeerRecorders(prev => [...prev, peerRecorderInstance]);
+
+            // Stop after 30 seconds
+            setTimeout(() => {
+                peerRecorderInstance.stop();
+            }, 30000); // Stop after 30 seconds
+        });
+
+        // Clean up peer recorders when peers change
+        return () => {
+            peerRecorders.forEach(recorder => recorder.stop());
+        };
+    }, [peers]);
 
     const toggleMic = () => {
         const audioTracks = streamRef.current.getAudioTracks();
@@ -229,7 +322,7 @@ const VideoRoom = () => {
                             {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                         </button>
                         <div className="flex gap-6">
-                        {/* <button
+                        <button
                             onClick={goToWhiteboard}
                             className="bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
                             <FaPalette className="inline-block mr-2" />
@@ -240,10 +333,9 @@ const VideoRoom = () => {
                             className="bg-[#2F4550] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
                             <FaFilePowerpoint className="inline-block mr-2" />
                             PptViewer
-                        </button> */}
-                </div> 
-                     </div>
-                    <PresentationViewer roomId={roomId}/>
+                        </button>
+                        </div>
+                    </div>
                 </motion.div>
             )}
         </div>

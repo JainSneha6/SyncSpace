@@ -21,6 +21,7 @@ function App() {
         <Route path="/ppt/:roomId" element={<PptViewer />} />
         <Route path='/whiteboardvideo/:roomId' element={<WhiteBoardVideoRoom />} />
         <Route path='/audio' element={<Audio />} />
+        <Route path='/video' element={<VideoRoom/>} />
       </Routes >
     </Router >
   );
