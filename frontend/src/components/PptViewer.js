@@ -30,14 +30,13 @@ const extractTextFromPDF = async (file) => {
   }
 };
 
-function PresentationViewer() {
+function PresentationViewer({ roomId }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [imageUrls, setImageUrls] = useState([]);
   const [pdfUrl, setPdfUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const socketRef = useRef(null);
-  const { roomId } = useParams();
   const navigate = useNavigate();
   const [quiz, setQuiz] = useState([]);
 
@@ -50,7 +49,8 @@ function PresentationViewer() {
     socketRef.current.on('pptUploaded', (pptData) => {
       setImageUrls(pptData.slides || []);
       setPdfUrl(pptData.pdf || '');
-      setCurrentIndex(0);  // Reset to the first slide when new PPT is uploaded
+      setCurrentIndex(0);
+      // Reset to the first slide when new PPT is uploaded
     });
 
     socketRef.current.on('slideUpdated', (newIndex) => {
@@ -134,9 +134,9 @@ function PresentationViewer() {
   };
 
   const navigateToQuiz = () => {
-    navigate('/quiz', { state: { quizData: quiz } }); 
+    navigate('/quiz', { state: { quizData: quiz } });
   }
-
+  console.log(roomId)
   return (
     <div className="min-h-screen bg-white text-white flex flex-col items-center justify-center p-6 relative">
       {/* Background Gradient for Visual Appeal */}
@@ -199,7 +199,7 @@ function PresentationViewer() {
             </div>
           </div>
           <div>
-          <button 
+            <button
               className="bg-[#CE4760] text-white p-4 rounded-lg shadow-lg transition-all duration-300 hover:bg-[#2F4550] hover:scale-105"
               onClick={navigateToQuiz}
             >
