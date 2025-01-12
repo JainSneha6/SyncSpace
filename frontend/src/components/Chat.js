@@ -72,7 +72,7 @@ const Chat = ({ socketRef, roomId, height }) => {
         {msg.message.includes('giphy.com') ? (
           <img src={msg.message} alt="GIF" className="inline-block w-24 h-24" />
         ) : (
-          <span className={`inline-block px-2 py-1 rounded-lg ${msg.id === socketRef.current.id ? 'bg-[#CE4760] text-white' : 'bg-[#2F4550] text-white'}`}>
+          <span className={`inline-block px-2 py-1 rounded-lg ${msg.id === socketRef.current.id ? 'bg-teal-500 text-white' : 'bg-blue-500 text-white'}`}>
             {msg.message}
           </span>
         )}
@@ -93,9 +93,9 @@ const Chat = ({ socketRef, roomId, height }) => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search GIFs..."
-              className="border border-gray-300 p-3 rounded-lg flex-grow focus:outline-none focus:ring-2 focus:ring-[#CE4760] transition-all"
+              className="border border-gray-300 p-3 rounded-lg flex-grow focus:outline-none focus:ring-2 transition-all"
             />
-            <button type="submit" className="bg-[#CE4760] text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-[#2F4550] flex items-center">
+            <button type="submit" className="bg-teal-500 text-white py-2 px-4 rounded-lg ml-2 transition duration-300 hover:bg-blue-500 flex items-center">
               <FaSearch />
             </button>
           </form>
@@ -134,7 +134,7 @@ const Chat = ({ socketRef, roomId, height }) => {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type a message..."
-            className="border border-gray-300 p-3 rounded-lg flex-grow focus:outline-none focus:ring-2 focus:ring-[#CE4760] transition-all"
+            className="border border-gray-300 p-3 rounded-lg flex-grow focus:outline-none focus:ring-2 transition-all"
           />
         </div>
   
@@ -143,7 +143,7 @@ const Chat = ({ socketRef, roomId, height }) => {
           {/* GIF Button */}
           <button
             type="button"
-            className="w-12 h-12 text-white bg-[#CE4760] hover:bg-[#2F4550] rounded-lg transition duration-300 flex items-center justify-center"
+            className="w-12 h-12 text-white bg-teal-500 hover:bg-blue-500 rounded-lg transition duration-300 flex items-center justify-center"
             onClick={() => {
               setShowGifPicker(!showGifPicker);
               setIsGifPickerOpen(!isGifPickerOpen);
@@ -153,7 +153,7 @@ const Chat = ({ socketRef, roomId, height }) => {
           </button>
           <button
             type="button"
-            className="w-12 h-12 text-white bg-[#CE4760] hover:bg-[#2F4550] rounded-lg transition duration-300 flex items-center justify-center"
+            className="w-12 h-12 text-white bg-teal-500 hover:bg-blue-500 rounded-lg transition duration-300 flex items-center justify-center"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           >
             <FaSmile size={24} />
@@ -162,7 +162,7 @@ const Chat = ({ socketRef, roomId, height }) => {
           {/* Send Button */}
           <button
             type="submit"
-            className="w-12 h-12 text-white bg-[#CE4760] hover:bg-[#2F4550] rounded-lg transition duration-300 flex items-center justify-center"
+            className="w-12 h-12 text-white bg-teal-500 hover:bg-blue-500 rounded-lg transition duration-300 flex items-center justify-center"
           >
             <FaPaperPlane />
           </button>

@@ -229,9 +229,9 @@ const VideoRoom = () => {
     };
 
     return (
-        <div className="min-h-screen bg-white text-[#2F4550] flex flex-col items-center justify-center p-6 relative">
+        <div className="min-h-screen bg-gradient-to-r from-blue-500 to-teal-500 text-white flex flex-col items-center justify-center p-6 relative">
             {/* Background Gradient for Visual Appeal */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#CE4760] via-[#2F4550] to-[#CE4760] opacity-10 pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-teal-500 opacity-10 pointer-events-none"></div>
     
             {/* Room Creation or Join Section */}
             {!roomId ? (
@@ -246,7 +246,7 @@ const VideoRoom = () => {
                     <div className="flex flex-col gap-6">
                         <button
                             onClick={handleRoomCreate}
-                            className="w-full bg-[#CE4760] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
+                            className="w-full bg-blue-500 text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
                             <FaCamera className="inline-block mr-2" />
                             Create Room
                         </button>
@@ -260,7 +260,7 @@ const VideoRoom = () => {
                             />
                             <button
                                 type="submit"
-                                className="w-full bg-[#2F4550] text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
+                                className="w-full bg-teal-500 text-white py-4 rounded-full font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-300">
                                 <FaUserPlus className="inline-block mr-2" />
                                 Join Room
                             </button>
@@ -273,12 +273,10 @@ const VideoRoom = () => {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}>
                     <h2 className="text-2xl font-semibold text-center mb-6">
-                        Room ID: <span className="text-[#CE4760]">{roomId}</span>
+                        Room ID: <span className="text-teal-500">{roomId}</span>
                     </h2>
     
-                    {/* Dynamic Layout with Split Screen */}
                     <div className="flex flex-col lg:flex-row gap-8">
-                        {/* Left Side: Video Section */}
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="relative bg-gray-100 rounded-lg overflow-hidden shadow-md">
                                 <video
@@ -288,7 +286,7 @@ const VideoRoom = () => {
                                     autoPlay
                                     className="w-full h-full object-cover"
                                 />
-                                <div className="absolute top-0 left-0 bg-[#CE4760] text-white text-sm font-semibold px-3 py-1 rounded-bl-lg">
+                                <div className="absolute top-0 left-0 bg-teal-500 text-white text-sm font-semibold px-3 py-1 rounded-bl-lg">
                                     You
                                 </div>
                             </div>
@@ -311,26 +309,26 @@ const VideoRoom = () => {
                     <div className="flex flex-wrap gap-6 justify-center mt-8">
                         <button
                             onClick={toggleMic}
-                            className="bg-[#CE4760] text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform duration-300">
+                            className="bg-teal-500 text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform duration-300">
                             {isMicOn ? <FaMicrophone className="inline-block mr-2" /> : <FaMicrophoneSlash className="inline-block mr-2" />}
                             {isMicOn ? "Mute" : "Unmute"}
                         </button>
                         <button
                             onClick={toggleCamera}
-                            className="bg-[#2F4550] text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform duration-300">
+                            className="bg-blue-500 text-white py-3 px-6 rounded-full font-medium shadow-lg hover:scale-105 transition-transform duration-300">
                             {isCameraOn ? <FaCamera className="inline-block mr-2" /> : <FaCamera className="inline-block mr-2 opacity-50" />}
                             {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                         </button>
                         <div className="flex gap-6">
                         <button
                             onClick={goToWhiteboard}
-                            className="bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
+                            className="bg-teal-500 text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
                             <FaPalette className="inline-block mr-2" />
                             Whiteboard
                         </button>
                         <button
                             onClick={goToPptViewer}
-                            className="bg-[#2F4550] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
+                            className="bg-blue-500 text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
                             <FaFilePowerpoint className="inline-block mr-2" />
                             PptViewer
                         </button>
