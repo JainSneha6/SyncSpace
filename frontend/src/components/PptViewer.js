@@ -89,10 +89,10 @@ function PresentationViewer({ roomId }) {
 
     try {
       // Send the extracted text to the backend in the required format
-      const response = await axios.post('https://backendfianlsih.azurewebsites.net/trans_quiz/get_questions', transcriptData);
+      // const response = await axios.post('https://backendfianlsih.azurewebsites.net/trans_quiz/get_questions', transcriptData);
 
-      console.log('Backend response:', response.data);
-      setQuiz(response.data);
+      // console.log('Backend response:', response.data);
+      // setQuiz(response.data);
 
       const formData = new FormData();
       formData.append('file', selectedFile);
