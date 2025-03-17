@@ -98,7 +98,7 @@ function PresentationViewer({ roomId }) {
       formData.append('file', selectedFile);
       formData.append('roomId', roomId);
 
-      const pptResponse = await axios.post('http://localhost:5001/uploadPpt', formData, {
+      const pptResponse = await axios.post('https://paletteconnect.onrender.com/uploadPpt', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
