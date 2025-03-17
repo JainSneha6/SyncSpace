@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 # PDF.co API credentials
-API_KEY = "anujtadkase@gmail.com_kqNsXkDD0cOOWx4ix5DeRBasu6ETDxB89V9rLZKOepf2du3ZRiFI58Em0wpivJp4"
+API_KEY = "jainsnehasj6@gmail.com_HCrQ4Rs3g81OCLm0eedi9MMg4JhWDHDJJUEUVIGU8GpzaS5yILjUDLKDM4BrDBFV"
 BASE_URL = "https://api.pdf.co/v1"
 Password = ""
 Pages = ""
