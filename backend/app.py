@@ -1,5 +1,5 @@
 import uuid
-import requests  # pip install requests
+import requests  
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import io
@@ -7,7 +7,6 @@ import io
 app = Flask(__name__)
 CORS(app)
 
-# PDF.co API credentials
 API_KEY = "jainsnehasj6@gmail.com_HCrQ4Rs3g81OCLm0eedi9MMg4JhWDHDJJUEUVIGU8GpzaS5yILjUDLKDM4BrDBFV"
 BASE_URL = "https://api.pdf.co/v1"
 Password = ""
@@ -55,27 +54,22 @@ def upload_ppt():
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
     print(3)
-    # Create a unique name for the uploaded file
     unique_id = str(uuid.uuid4())
     file_name = f"{unique_id}_{file.filename}"
     print(4)
     try:
-        # Read file content into memory
         file_stream = io.BytesIO(file.read())
 
-        # Upload file to PDF.co
         uploaded_file_url = upload_file_to_pdf_co(file_stream, file_name)
         if not uploaded_file_url:
             return jsonify({"error": "Failed to upload file to PDF.co"}), 500
 
-        # Convert PDF to images
         image_urls = convert_pdf_to_images(uploaded_file_url)
         if not image_urls:
             return jsonify({"error": "Failed to convert PDF to images"}), 500
 
-        # Prepare the folder and PDF URL for response
-        folder_url = uploaded_file_url.rsplit('/', 1)[0]  # Extract the folder URL from the uploaded file URL
-        pdf_url = uploaded_file_url  # Use the uploaded file URL as the PDF URL
+        folder_url = uploaded_file_url.rsplit('/', 1)[0] 
+        pdf_url = uploaded_file_url  
 
         return jsonify({
             "slides": image_urls,

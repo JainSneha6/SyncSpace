@@ -3,7 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const multer = require('multer');
-const FormData = require('form-data'); // Ensure FormData is imported
+const FormData = require('form-data'); 
 const axios = require('axios')
 
 const app = express();
@@ -12,12 +12,12 @@ app.use(cors());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*', // Adjust as needed for your frontend
+    origin: '*', 
     methods: ['GET', 'POST'],
   },
 });
 
-const storage = multer.memoryStorage();  // Store the file in memory (you can configure this to save to disk)
+const storage = multer.memoryStorage();  
 const upload = multer({ storage: storage });
 
 const PORT = 5001;
@@ -29,10 +29,9 @@ const stickyNotesPerRoom = {};
 let stickyNotes = [];
 let pptData = {};
 
-// Route to handle PPT uploads
 app.post('/uploadPpt', upload.single('file'), async (req, res) => {
-  const { roomId } = req.body; // Extract roomId from the request body
-  const pptFile = req.file; // Access the uploaded file
+  const { roomId } = req.body; 
+  const pptFile = req.file; 
   console.log('1')
   if (!pptFile) {
     return res.status(400).json({ error: 'No file uploaded' });
@@ -43,21 +42,17 @@ app.post('/uploadPpt', upload.single('file'), async (req, res) => {
   }
   console.log('3')
   try {
-    // Prepare FormData to send to Flask backend
     const formData = new FormData();
-    formData.append('file', pptFile.buffer, pptFile.originalname); // Attach file buffer with original name
+    formData.append('file', pptFile.buffer, pptFile.originalname); 
     console.log('4')
-    // Send the file to Flask backend for processing
-    const response = await axios.post('https://syncspace-pkal.onrender.com/upload', formData, {
+    const response = await axios.post('https://backend-pi-ecru.vercel.app/upload', formData, {
       headers: formData.getHeaders(),
     });
     console.log('5')
     const { slides, folder, pdf } = response.data;
 
-    // Store the slides data for the room
     pptData[roomId] = { slides, folder, pdf };
 
-    // Notify all users in the room about the new slides
     io.to(roomId).emit('pptUploaded', pptData[roomId]);
 
     res.status(200).json({ slides, folder, pdf });
@@ -123,7 +118,7 @@ io.on('connection', (socket) => {
     if (stickyNotesPerRoom[roomId]) {
       socket.emit('syncStickyNotes', stickyNotesPerRoom[roomId]);
     } else {
-      stickyNotesPerRoom[roomId] = []; // Initialize if not present
+      stickyNotesPerRoom[roomId] = []; 
     }
 
     if (pptData[roomId]) {
@@ -134,12 +129,10 @@ io.on('connection', (socket) => {
   socket.on('uploadPpt', (pptData) => {
     const { roomId, pptFileData } = pptData;
 
-    // Broadcast the ppt data to all clients in the room
     io.to(roomId).emit('pptUploaded', pptFileData);
   });
 
   socket.on('slideChanged', ({ roomId, currentIndex }) => {
-    // Broadcast to other clients in the same room
     socket.to(roomId).emit('slideUpdated', currentIndex);
   });
 
@@ -162,39 +155,34 @@ io.on('connection', (socket) => {
     }
     drawingrooms[roomId].push(drawingData);
 
-    // Broadcast drawing to others in the room
     socket.to(roomId).emit("drawing", drawingData);
   });
 
   socket.on("clearBoard", (roomId) => {
     if (drawingrooms[roomId]) {
-      drawingrooms[roomId] = []; // Clear the drawings for the room
+      drawingrooms[roomId] = [];
     }
-    io.to(roomId).emit("clearBoard"); // Notify all users in the room
+    io.to(roomId).emit("clearBoard"); 
   });
 
   socket.on('createStickyNote', (noteData) => {
     const { roomId, note } = noteData;
 
-    // If the room doesn't have sticky notes, initialize it
     if (!stickyNotesPerRoom[roomId]) {
       stickyNotesPerRoom[roomId] = [];
     }
 
-    // Add the new sticky note to the room
     stickyNotesPerRoom[roomId].push(note);
 
-    // Broadcast the new sticky note to all users in the room
     io.to(roomId).emit('syncStickyNotes', stickyNotesPerRoom[roomId]);
   });
 
 
-  // Handle sticky note updates (e.g., moving or editing a note)
   socket.on('updateStickyNote', ({ roomId, note }) => {
     const notesInRoom = stickyNotesPerRoom[roomId] || [];
     const index = notesInRoom.findIndex(n => n.id === note.id);
     if (index !== -1) {
-      notesInRoom[index] = note; // Update the sticky note
+      notesInRoom[index] = note; 
       io.to(roomId).emit('syncStickyNotes', notesInRoom);
     }
   });
