@@ -33,7 +33,7 @@ const Audio = () => {
                     userVideoRef.current.srcObject = stream;
                 }
 
-                // startRecording(stream); // Start audio recording
+
 
                 socketRef.current.emit('join room', roomId);
 
