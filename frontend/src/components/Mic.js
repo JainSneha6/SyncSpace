@@ -11,7 +11,7 @@ const VoiceCall = () => {
 
   useEffect(() => {
     // Socket connection
-    socketRef.current = io('https://syncspacebackend.vercel.app/');
+    socketRef.current = io('https://paletteconnect.onrender.com');
 
     // WebRTC configuration
     const configuration = {

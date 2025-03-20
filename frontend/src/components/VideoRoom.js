@@ -26,7 +26,7 @@ const VideoRoom = () => {
     const [peerRecordingData, setPeerRecordingData] = useState([]);
 
     useEffect(() => {
-        socketRef.current = io.connect('https://syncspacebackend.vercel.app/');
+        socketRef.current = io.connect('https://paletteconnect.onrender.com');
 
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {

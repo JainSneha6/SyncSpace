@@ -24,7 +24,7 @@ const WhiteBoardVideoRoom = () => {
     const [backendResponse, setBackendResponse] = useState(null);
 
     useEffect(() => {
-        socketRef.current = io.connect('https://syncspacebackend.vercel.app/');
+        socketRef.current = io.connect('https://paletteconnect.onrender.com');
 
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {

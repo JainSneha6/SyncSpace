@@ -23,7 +23,7 @@ const Canvas = ({ roomId, quiz }) => {
 
   useEffect(() => {
 
-    socketRef.current = io("https://syncspacebackend.vercel.app/");
+    socketRef.current = io("https://paletteconnect.onrender.com");
     if (roomId) {
       socketRef.current.emit("joinRoom", roomId);
 
