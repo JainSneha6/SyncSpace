@@ -17,14 +17,14 @@ const WhiteBoardVideoRoom = () => {
     const peersRef = useRef([]);
     const streamRef = useRef();
     const navigate = useNavigate();
-    const [recordings, setRecordings] = useState([]); 
-    const recorderRef = useRef(); 
-    const [transcription, setTranscription] = useState(''); 
-    const recognitionRef = useRef(null); 
+    const [recordings, setRecordings] = useState([]);
+    const recorderRef = useRef();
+    const [transcription, setTranscription] = useState('');
+    const recognitionRef = useRef(null);
     const [backendResponse, setBackendResponse] = useState(null);
 
     useEffect(() => {
-        socketRef.current = io.connect('https://paletteconnect.onrender.com');
+        socketRef.current = io.connect('https://syncspace-ewrk.vercel.app/');
 
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {
@@ -79,7 +79,7 @@ const WhiteBoardVideoRoom = () => {
                 console.error("Error accessing media devices:", err);
             });
 
-            
+
 
         return () => {
             if (socketRef.current) {
@@ -290,7 +290,7 @@ const WhiteBoardVideoRoom = () => {
                         </button>
                     </div>
                     <div className='mt-5'>
-                    <Canvas roomId={roomId} quiz={backendResponse} />
+                        <Canvas roomId={roomId} quiz={backendResponse} />
                     </div>
                 </motion.div>
             )}

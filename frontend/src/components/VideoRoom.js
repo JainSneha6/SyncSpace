@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import Chat from './Chat'; // Import the Chat component
 import PresentationViewer from './PptViewer';
-import html2canvas from 'html2canvas'; 
+import html2canvas from 'html2canvas';
 
 const VideoRoom = () => {
     const [roomId, setRoomId] = useState('');
@@ -26,7 +26,7 @@ const VideoRoom = () => {
     const [peerRecordingData, setPeerRecordingData] = useState([]);
 
     useEffect(() => {
-        socketRef.current = io.connect('https://paletteconnect.onrender.com');
+        socketRef.current = io.connect('https://syncspace-ewrk.vercel.app/');
 
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {
@@ -110,7 +110,7 @@ const VideoRoom = () => {
             console.error("User video element not available.");
             return;
         }
-    
+
         html2canvas(userVideoRef.current, { useCORS: true }) // Ensure CORS is handled
             .then(canvas => {
                 const screenshotData = canvas.toDataURL('image/png');
@@ -119,7 +119,7 @@ const VideoRoom = () => {
             })
             .catch(error => console.error('Error capturing screenshot:', error));
     };
-    
+
 
     const sendScreenshotToBackend = (imageData) => {
         fetch('http://localhost:5000/upload_img', {
@@ -232,7 +232,7 @@ const VideoRoom = () => {
         <div className="min-h-screen bg-gradient-to-r from-blue-500 to-teal-500 text-white flex flex-col items-center justify-center p-6 relative">
             {/* Background Gradient for Visual Appeal */}
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-teal-500 opacity-10 pointer-events-none"></div>
-    
+
             {/* Room Creation or Join Section */}
             {!roomId ? (
                 <motion.div
@@ -242,7 +242,7 @@ const VideoRoom = () => {
                     <h2 className="text-3xl font-semibold text-center mb-6 text-[#2F4550]">
                         Create or Join a Room
                     </h2>
-    
+
                     <div className="flex flex-col gap-6">
                         <button
                             onClick={handleRoomCreate}
@@ -275,7 +275,7 @@ const VideoRoom = () => {
                     <h2 className="text-2xl font-semibold text-center mb-6">
                         Room ID: <span className="text-teal-500">{roomId}</span>
                     </h2>
-    
+
                     <div className="flex flex-col lg:flex-row gap-8">
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="relative bg-gray-100 rounded-lg overflow-hidden shadow-md">
@@ -300,7 +300,7 @@ const VideoRoom = () => {
                                 </div>
                             )}
                         </div>
-    
+
                         {/* Right Side: Chat Section */}
                         <div className="w-full lg:w-1/3 bg-[#F5F5F5] rounded-lg shadow-md p-6">
                             <Chat socketRef={socketRef} roomId={roomId} height={'40px'} />
@@ -320,25 +320,25 @@ const VideoRoom = () => {
                             {isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                         </button>
                         <div className="flex gap-6">
-                        <button
-                            onClick={goToWhiteboard}
-                            className="bg-teal-500 text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
-                            <FaPalette className="inline-block mr-2" />
-                            Whiteboard
-                        </button>
-                        <button
-                            onClick={goToPptViewer}
-                            className="bg-blue-500 text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
-                            <FaFilePowerpoint className="inline-block mr-2" />
-                            PptViewer
-                        </button>
+                            <button
+                                onClick={goToWhiteboard}
+                                className="bg-teal-500 text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
+                                <FaPalette className="inline-block mr-2" />
+                                Whiteboard
+                            </button>
+                            <button
+                                onClick={goToPptViewer}
+                                className="bg-blue-500 text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg  hover:scale-105 transition-transform duration-300">
+                                <FaFilePowerpoint className="inline-block mr-2" />
+                                PptViewer
+                            </button>
                         </div>
                     </div>
                 </motion.div>
             )}
         </div>
-    );    
-};    
+    );
+};
 
 const Video = ({ peer }) => {
     const ref = useRef();

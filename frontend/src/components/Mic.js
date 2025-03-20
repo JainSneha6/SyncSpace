@@ -11,7 +11,7 @@ const VoiceCall = () => {
 
   useEffect(() => {
     // Socket connection
-    socketRef.current = io('https://paletteconnect.onrender.com');
+    socketRef.current = io('https://syncspace-ewrk.vercel.app/');
 
     // WebRTC configuration
     const configuration = {
@@ -62,7 +62,7 @@ const VoiceCall = () => {
       try {
         // Get audio stream
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
+
         // Add tracks to peer connection
         stream.getTracks().forEach(track => {
           peerConnectionRef.current.addTrack(track, stream);
@@ -70,7 +70,7 @@ const VoiceCall = () => {
 
         // Set local stream
         localStreamRef.current.srcObject = stream;
-        
+
         // Create offer
         const offer = await peerConnectionRef.current.createOffer();
         await peerConnectionRef.current.setLocalDescription(offer);
@@ -84,7 +84,7 @@ const VoiceCall = () => {
       // Stop all tracks
       const tracks = localStreamRef.current.srcObject?.getTracks() || [];
       tracks.forEach(track => track.stop());
-      
+
       // Remove tracks from peer connection
       peerConnectionRef.current.getSenders().forEach(sender => {
         peerConnectionRef.current.removeTrack(sender);
@@ -97,18 +97,18 @@ const VoiceCall = () => {
 
   return (
     <div className="text-center p-4">
-      <button 
+      <button
         onClick={toggleMic}
         className={`bg-[#CE4760] text-white py-3 px-8 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300`}
       >
         {isMicOn ? (
           <>
-          <FaMicrophone className="text-lg" />
-        </>
+            <FaMicrophone className="text-lg" />
+          </>
         ) : (
           <>
-          <FaMicrophoneSlash className="text-lg" />
-        </>
+            <FaMicrophoneSlash className="text-lg" />
+          </>
         )}
       </button>
       <audio ref={localStreamRef} autoPlay muted />

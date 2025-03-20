@@ -23,7 +23,7 @@ const Canvas = ({ roomId, quiz }) => {
 
   useEffect(() => {
 
-    socketRef.current = io("https://paletteconnect.onrender.com");
+    socketRef.current = io("https://syncspace-ewrk.vercel.app/");
     if (roomId) {
       socketRef.current.emit("joinRoom", roomId);
 
@@ -519,7 +519,7 @@ const Canvas = ({ roomId, quiz }) => {
   };
 
   const navigateToQuiz = () => {
-    navigate('/quiz', { state: { quizData: quiz } }); 
+    navigate('/quiz', { state: { quizData: quiz } });
   }
 
   return (
@@ -587,12 +587,12 @@ const Canvas = ({ roomId, quiz }) => {
           >
             <RiDeleteBinLine className="text-xl" />
           </button>
-          
-          <button 
-              className="bg-[#CE4760] text-white p-4 rounded-lg shadow-lg transition-all duration-300 hover:bg-[#2F4550] hover:scale-105"
-              onClick={navigateToQuiz}
-            >
-              Take the Quiz!
+
+          <button
+            className="bg-[#CE4760] text-white p-4 rounded-lg shadow-lg transition-all duration-300 hover:bg-[#2F4550] hover:scale-105"
+            onClick={navigateToQuiz}
+          >
+            Take the Quiz!
           </button>
 
         </div>

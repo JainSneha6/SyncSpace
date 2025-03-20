@@ -42,7 +42,7 @@ function PresentationViewer({ roomId }) {
 
   useEffect(() => {
     // Initialize Socket.IO connection
-    socketRef.current = io('https://paletteconnect.onrender.com');
+    socketRef.current = io('https://syncspace-ewrk.vercel.app/');
 
     socketRef.current.emit('joinRoom', roomId);
 

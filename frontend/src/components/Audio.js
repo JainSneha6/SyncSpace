@@ -24,7 +24,7 @@ const Audio = () => {
 
 
     useEffect(() => {
-        socketRef.current = io.connect('https://paletteconnect.onrender.com');
+        socketRef.current = io.connect('https://syncspace-ewrk.vercel.app/');
 
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {
