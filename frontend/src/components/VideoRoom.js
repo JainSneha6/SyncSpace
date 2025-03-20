@@ -26,7 +26,7 @@ const VideoRoom = () => {
     const [peerRecordingData, setPeerRecordingData] = useState([]);
 
     useEffect(() => {
-        socketRef.current = io.connect('https://syncspace-ewrk.vercel.app/');
+        socketRef.current = io.connect('https://syncspace-ewrk-git-main-siddhartha-chakrabartys-projects.vercel.app/');
 
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {

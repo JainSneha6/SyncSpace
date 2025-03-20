@@ -23,7 +23,7 @@ const Canvas = ({ roomId, quiz }) => {
 
   useEffect(() => {
 
-    socketRef.current = io("https://syncspace-ewrk.vercel.app/");
+    socketRef.current = io("https://syncspace-ewrk-git-main-siddhartha-chakrabartys-projects.vercel.app/");
     if (roomId) {
       socketRef.current.emit("joinRoom", roomId);
 

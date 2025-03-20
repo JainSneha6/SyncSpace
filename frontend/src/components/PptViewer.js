@@ -42,7 +42,7 @@ function PresentationViewer({ roomId }) {
 
   useEffect(() => {
     // Initialize Socket.IO connection
-    socketRef.current = io('https://syncspace-ewrk.vercel.app/');
+    socketRef.current = io('https://syncspace-ewrk-git-main-siddhartha-chakrabartys-projects.vercel.app/');
 
     socketRef.current.emit('joinRoom', roomId);
 
