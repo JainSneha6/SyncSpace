@@ -45,7 +45,7 @@ app.post('/uploadPpt', upload.single('file'), async (req, res) => {
     const formData = new FormData();
     formData.append('file', pptFile.buffer, pptFile.originalname); 
     console.log('4')
-    const response = await axios.post('https://backend-pi-ecru.vercel.app/', formData, {
+    const response = await axios.post('https://backend-pi-ecru.vercel.app/upload', formData, {
       headers: formData.getHeaders(),
     });
     console.log('5')
